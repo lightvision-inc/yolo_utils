@@ -6,15 +6,15 @@ These scripts are designed to train and validate YOLOv3 easily.
 
 Script  | Dataset | Detail
 ------------- | ------------- | -------------
-[coco_make_subset.py](./blob/master/coco_make_subset.py) | COCO 2017 | Generate annotation files for target classes
-[coco_make_subset_list.py](./blob/mastercoco_make_subset_list.py) | COCO 2017 | Generate a list of subset images
-[voc_make_subset.py](./blob/master/voc_make_subset.py) | VOC 2007/2012 | Generate annotation files for target classes
-[voc_make_subset_list.py](./blob/master/voc_make_subset_list.py) | VOC 2007/2012 | Generate a list of subset images
+[coco_make_subset.py](./coco_make_subset.py) | COCO 2017 | Generate annotation files for target classes
+[coco_make_subset_list.py](./coco_make_subset_list.py) | COCO 2017 | Generate a list of subset images
+[voc_make_subset.py](./voc_make_subset.py) | VOC 2007/2012 | Generate annotation files for target classes
+[voc_make_subset_list.py](./voc_make_subset_list.py) | VOC 2007/2012 | Generate a list of subset images
 
 ## Batch files
 
-* [coco.bat](./blob/master/coco.bat) generates annotation txt files for training and annotation in the folder containing COCO 2017 dataset, and lists of training and validation image files
-* [voc.bat](./blob/master/voc.bat) generates annotation txt files in the folder containing VOC 2007/2012 datasets, and a list of image files
+* [coco.bat](./coco.bat) generates annotation txt files for training and annotation in the folder containing COCO 2017 dataset, and lists of training and validation image files
+* [voc.bat](./voc.bat) generates annotation txt files in the folder containing VOC 2007/2012 datasets, and a list of image files
 
 ### Important note
 In our project, VOC 2007/2012 datasets are only used for training; therefore, we do not generate separate lists of image files.
