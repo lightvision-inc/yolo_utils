@@ -34,6 +34,10 @@ Shortcut | Description
 <kbd>f</kbd> | Move to the next image
 <kbd>b</kbd> | Move to the previous image
 
+### Examples
+![example_00](/fig/example_voc_annotator_00.png)
+![example_01](/fig/example_voc_annotator_01.png)
+
 ## Directory structure for datasets
 
 ### COCO 2017
