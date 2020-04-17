@@ -10,7 +10,7 @@ Script  | Dataset | Detail
 [coco_make_subset_list.py](./coco_make_subset_list.py) | COCO 2017 | Generate a list of subset images
 [voc_make_subset.py](./voc_make_subset.py) | VOC 2007/2012 | Generate annotation files for target classes
 [voc_make_subset_list.py](./voc_make_subset_list.py) | VOC 2007/2012 | Generate a list of subset images
-[voc_annoator.py](./voc_annoator.py) | - | VOC style GUI annotator
+[voc_annotator.py](./voc_annotator.py) | - | VOC style GUI annotator
 
 ## Batch files
 
@@ -22,7 +22,7 @@ In our project, VOC 2007/2012 datasets are only used for training; therefore, we
 
 ## Annotator
 
- [voc_annoator.py](./voc_annotator.py) script provides a GUI for annotating bounding boxes. You can draw a rectangle by clicking a left mouse button and dragging. Also, you can pop out the most recent rectangle by clicking a right mouse button. If you want to relocate a center of the rectangle during the dragging, you can press <kbd>space</kbd>. After you finish drawing the rectangle, a dialog to get the name of the object you just annotate will pop up.
+ [voc_annotator.py](./voc_annotator.py) script provides a GUI for annotating bounding boxes. You can draw a rectangle by clicking a left mouse button and dragging. Also, you can pop out the most recent rectangle by clicking a right mouse button. If you want to relocate a center of the rectangle during the dragging, you can press <kbd>space</kbd>. After you finish drawing the rectangle, a dialog to get the name of the object you just annotate will pop up.
 
  This annotator follows the XML structure for VOC 2007/2012 datasets. In the datasets, there are three more fields for annotation: pose, truncated, difficult. Currently, our implementation does not support any interfaces to fill those three fields.
 
