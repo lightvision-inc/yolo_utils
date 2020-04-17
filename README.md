@@ -10,6 +10,7 @@ Script  | Dataset | Detail
 [coco_make_subset_list.py](./coco_make_subset_list.py) | COCO 2017 | Generate a list of subset images
 [voc_make_subset.py](./voc_make_subset.py) | VOC 2007/2012 | Generate annotation files for target classes
 [voc_make_subset_list.py](./voc_make_subset_list.py) | VOC 2007/2012 | Generate a list of subset images
+[voc_annoator.py](./voc_annoator.py) | - | VOC style GUI annotator
 
 ## Batch files
 
