@@ -24,7 +24,7 @@ def parse_arguments(argv):
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--root_path', type=str,
-                        help='root of VOC development kit', default='E:/VOCdevkit/VOC2020')
+                        help='root of VOC development kit', default='E:/VOCdevkit/VOC2007')
     parser.add_argument('--classes', type=str,
                         help='list of classes for subset', default=['car'])
 

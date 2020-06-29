@@ -160,7 +160,7 @@ def draw_annot(img, name, tl, br):
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--root_path', type=str,
-                    help='root path of the dataset; directory structure must be same as VOC 2007/2012', default='E:/VOCdevkit/VOC2020')
+                    help='root path of the dataset; directory structure must be same as VOC 2007/2012', default='E:/VOCdevkit/VOC2007')
 parser.add_argument('--img_ext', type=str,
                     help='extension of image files', default='jpg')
 
