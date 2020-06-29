@@ -7,8 +7,17 @@ import keyboard
 import cv2
 import numpy as np
 import tkinter as tk
+import tkinter.simpledialog
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
+
+
+font = cv2.FONT_HERSHEY_COMPLEX_SMALL
+
+W = (255, 255, 255)
+R = (0, 0, 255)
+G = (0, 255, 0)
+B = (255, 0, 0)
 
 
 def annotation(event, x, y, flags, param):
@@ -36,6 +45,7 @@ def annotation(event, x, y, flags, param):
 
 
 def construct_xml(filename, img):
+
     data = ET.Element('annotation')
     ET.SubElement(data, 'filename').text = filename
 
@@ -50,6 +60,7 @@ def construct_xml(filename, img):
 
 
 def copy_xml(xml):
+
     new_xml = xml
     del_list = [e for e in new_xml.iter('object')]
     for e in del_list:
@@ -59,6 +70,7 @@ def copy_xml(xml):
 
 
 def get_xml_path(img_path):
+
     basename = os.path.basename(img_path)
     filename = os.path.splitext(basename)[0]
 
@@ -70,6 +82,7 @@ def get_xml_path(img_path):
 
 
 def get_paired_data(img_path, xml_path):
+
     img = cv2.imread(img_path)
 
     xml = None
@@ -118,10 +131,29 @@ def array2xml(xml):
         ET.SubElement(bb, 'ymax').text = str(br[i][1])
 
 
+def draw_nav_string(img, img_list):
+
+    msg = "{}/{}".format(idx + 1, len(img_list))
+    msg_sz, _ = cv2.getTextSize(msg, font, 1, 1)
+
+    cv2.rectangle(img, (0, 0), (msg_sz[0], msg_sz[1] + 4), W, -1)
+    cv2.putText(img, msg, (0, msg_sz[1] + 2), font, 1, B, 1)
+
+
+def draw_annot(img, name, tl, br):
+
+    txt_sz, _ = cv2.getTextSize(name, font, 1, 1)
+
+    cv2.rectangle(clone, tl, br, R, 1)
+    cv2.rectangle(clone, (tl[0], tl[1] - txt_sz[1] - 4),
+                  (tl[0] + txt_sz[0], tl[1]), R, -1)
+    cv2.putText(clone, name, (tl[0], tl[1] - 4), font, 1, W, 1)
+
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--root_path', type=str,
-                    help='root path of the dataset; directory structure must be same as VOC 2007/2012', default='E:/VOCdevkit/VOC2007')
+                    help='root path of the dataset; directory structure must be same as VOC 2007/2012', default='E:/VOCdevkit/VOC2020')
 parser.add_argument('--img_ext', type=str,
                     help='extension of image files', default='jpg')
 
@@ -161,21 +193,19 @@ cv2.setMouseCallback('annotator', annotation)
 while True:
     clone = img.copy()
 
-    if ref_pt is not None:
-        cv2.rectangle(clone, ref_pt, curr_pt, (0, 255, 0), 1)
+    draw_nav_string(clone, img_list)
 
-    for i in range(len(tl)):
-        cv2.rectangle(clone, tl[i], br[i], (0, 0, 255), 1)
-        cv2.rectangle(clone, (tl[i][0], tl[i][1] - 20),
-                      (br[i][0], tl[i][1]), (0, 0, 255), -1)
-        cv2.putText(clone, name[i], (tl[i][0] + 3, tl[i][1] - 7),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+    if ref_pt is not None:
+        cv2.rectangle(clone, ref_pt, curr_pt, G, 1)
+
+    for i in range(len(name)):
+        draw_annot(clone, name[i], tl[i], br[i])
 
     cv2.imshow('annotator', clone)
 
     key = cv2.waitKey(1) & 0xFF
 
-    if key == ord('f') or key == ord('b') or key == ord('q'):
+    if key == ord('f') or key == ord('d') or key == ord('q'):
         # save current data
         new_xml = copy_xml(xml)
         array2xml(new_xml)
@@ -187,8 +217,8 @@ while True:
 
         # move to the next state
         if key == ord('f'):
-            idx = idx + 1 % len(img_list)
-        elif key == ord('b'):
+            idx = np.min([idx + 1, len(img_list) - 1])
+        elif key == ord('d'):
             idx = np.max([idx - 1, 0])
         else:
             break
