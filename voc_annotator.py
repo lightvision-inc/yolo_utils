@@ -29,8 +29,15 @@ def annotation(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONUP:
         tl.append(ref_pt)
         br.append(curr_pt)
-        name.append(tk.simpledialog.askstring(
-            title='Q', prompt='Enter object name'))
+        answer = tk.simpledialog.askstring(
+            title='Q', prompt='Enter object name')
+
+        if answer is not None:
+            name.append(answer)
+        else:
+            tl.pop()
+            br.pop()
+
         ref_pt = None
 
     if event == cv2.EVENT_RBUTTONDOWN:
