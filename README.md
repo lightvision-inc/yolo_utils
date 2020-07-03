@@ -32,8 +32,11 @@ This annotator follows the XML structure for VOC 2007/2012 datasets. In the data
 Shortcut | Description
 --- | --- |
 <kbd>q</kbd> | Quit the GUI
-<kbd>f</kbd> | Move to the next image
-<kbd>d</kbd> | Move to the previous image
+<kbd>g</kbd> | Navigate to a certain frame
+<kbd>F</kbd> | Retain current annotations and move to the next frame
+<kbd>f</kbd> | Move to the next frame
+<kbd>d</kbd> | Move to the previous frame
+<kbd>c</kbd> | Clear annotations for current frame
 
 ### Examples
 ![example_00](/fig/example_voc_annotator_00.png)

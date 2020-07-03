@@ -29,8 +29,11 @@ def annotation(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONUP:
         tl.append(ref_pt)
         br.append(curr_pt)
-        answer = tk.simpledialog.askstring(
-            title='Q', prompt='Enter object name')
+        if args.default_name is None:
+            answer = tk.simpledialog.askstring(
+                title='Q', prompt='Enter object name')
+        else:
+            answer = args.default_name
 
         if answer is not None:
             name.append(answer)
@@ -163,6 +166,8 @@ parser.add_argument('--root_path', type=str,
                     help='root path of the dataset; directory structure must be same as VOC 2007/2012', default='E:/VOCdevkit/VOC2007')
 parser.add_argument('--img_ext', type=str,
                     help='extension of image files', default='jpg')
+parser.add_argument('--default_name', type=str,
+                    help='default name of annotated objects')
 
 args = parser.parse_args(sys.argv[1:])
 
@@ -212,7 +217,15 @@ while True:
 
     key = cv2.waitKey(1) & 0xFF
 
-    if key == ord('f') or key == ord('d') or key == ord('q'):
+    if key == ord('c'):
+        msg_box = tk.messagebox.askquestion(
+            'Clear', 'Do you wish you clear annotation data?', icon='warning')
+        if msg_box == 'yes':
+            tl = []
+            br = []
+            name = []
+
+    if key == ord('g') or key == ord('F') or key == ord('f') or key == ord('d') or key == ord('q'):
         # save current data
         new_xml = copy_xml(xml)
         array2xml(new_xml)
@@ -223,7 +236,12 @@ while True:
             f.write(xml_str)
 
         # move to the next state
-        if key == ord('f'):
+        if key == ord('g'):
+            answer = tk.simpledialog.askinteger(
+                title='Q', prompt='Enter frame index to move')
+            idx = np.min([answer - 1, len(img_list) - 1])
+            idx = np.max([idx, 0])
+        elif key == ord('F') or key == ord('f'):
             idx = np.min([idx + 1, len(img_list) - 1])
         elif key == ord('d'):
             idx = np.max([idx - 1, 0])
@@ -234,6 +252,7 @@ while True:
         xml_path = get_xml_path(img_path)
 
         img, xml = get_paired_data(img_list[idx], xml_path)
-        xml2array(xml)
+        if key != ord('F'):
+            xml2array(xml)
 
 cv2.destroyAllWindows()
