@@ -10,14 +10,7 @@ import tkinter as tk
 import tkinter.simpledialog
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
-
-
-font = cv2.FONT_HERSHEY_COMPLEX_SMALL
-
-W = (255, 255, 255)
-R = (0, 0, 255)
-G = (0, 255, 0)
-B = (255, 0, 0)
+import draw_utils as utils
 
 
 def annotation(event, x, y, flags, param):
@@ -141,25 +134,6 @@ def array2xml(xml):
         ET.SubElement(bb, 'ymax').text = str(br[i][1])
 
 
-def draw_nav_string(img, img_list):
-
-    msg = "{}/{}".format(idx + 1, len(img_list))
-    msg_sz, _ = cv2.getTextSize(msg, font, 1, 1)
-
-    cv2.rectangle(img, (0, 0), (msg_sz[0], msg_sz[1] + 4), W, -1)
-    cv2.putText(img, msg, (0, msg_sz[1] + 2), font, 1, B, 1)
-
-
-def draw_annot(img, name, tl, br):
-
-    txt_sz, _ = cv2.getTextSize(name, font, 1, 1)
-
-    cv2.rectangle(clone, tl, br, R, 1)
-    cv2.rectangle(clone, (tl[0], tl[1] - txt_sz[1] - 4),
-                  (tl[0] + txt_sz[0], tl[1]), R, -1)
-    cv2.putText(clone, name, (tl[0], tl[1] - 4), font, 1, W, 1)
-
-
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--root_path', type=str,
@@ -205,13 +179,13 @@ cv2.setMouseCallback('annotator', annotation)
 while True:
     clone = img.copy()
 
-    draw_nav_string(clone, img_list)
+    utils.draw_nav_string(clone, img_list, idx)
 
     if ref_pt is not None:
-        cv2.rectangle(clone, ref_pt, curr_pt, G, 1)
+        cv2.rectangle(clone, ref_pt, curr_pt, utils.G, 1)
 
     for i in range(len(name)):
-        draw_annot(clone, name[i], tl[i], br[i])
+        utils.draw_annot(clone, name[i], tl[i], br[i])
 
     cv2.imshow('annotator', clone)
 
