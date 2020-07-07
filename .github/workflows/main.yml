@@ -39,7 +39,7 @@ jobs:
     - name: Upload the standalone VOC annotator
       uses: actions/upload-artifact@v2
       with:
-        name: sa_voc_annotator
+        name: ${{ runner.os }}_voc_annotator
         path: dist
 
   build-windows:
@@ -66,12 +66,10 @@ jobs:
         pip install -r requirements.txt
     
     - name: Create a standalone VOC annotator
-      run: |
-        ren create_sa_voc_annotator.sh create_sa_voc_annotator.bat
-        ./create_sa_voc_annotator.bat
+      run: ./create_sa_voc_annotator.bat
 
     - name: Upload the standalone VOC annotator
       uses: actions/upload-artifact@v2
       with:
-        name: sa_voc_annotator
+        name: ${{ runner.os }}_voc_annotator
         path: dist
