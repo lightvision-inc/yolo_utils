@@ -1,0 +1,77 @@
+name: YOLO utils
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Update apt
+      run: sudo apt update
+    
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+
+    - name: Cache pip
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          ${{ runner.os }}-
+    - name: Install python requirements
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Create a standalone VOC annotator
+      run: sh create_sa_voc_annotator.sh
+
+    - name: Upload the standalone VOC annotator
+      uses: actions/upload-artifact@v2
+      with:
+        name: sa_voc_annotator
+        path: dist
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+
+    - name: Cache pip
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          ${{ runner.os }}-
+    - name: Install python requirements
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Create a standalone VOC annotator
+      run: |
+        ren create_sa_voc_annotator.sh create_sa_voc_annotator.bat
+        create_sa_voc_annotator.bat
+
+    - name: Upload the standalone VOC annotator
+      uses: actions/upload-artifact@v2
+      with:
+        name: sa_voc_annotator
+        path: dist
