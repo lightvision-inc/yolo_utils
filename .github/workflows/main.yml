@@ -68,7 +68,7 @@ jobs:
     - name: Create a standalone VOC annotator
       run: |
         ren create_sa_voc_annotator.sh create_sa_voc_annotator.bat
-        create_sa_voc_annotator.bat
+        ./create_sa_voc_annotator.bat
 
     - name: Upload the standalone VOC annotator
       uses: actions/upload-artifact@v2
