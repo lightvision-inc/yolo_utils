@@ -1,6 +1,6 @@
-# Utility scripts for YOLOv3
+# Utility scripts for YOLO
 
-These scripts are designed to train and validate YOLOv3 easily.
+These scripts are designed to train and validate YOLO easily.
 
 ## List of scripts
 
@@ -12,6 +12,7 @@ Script  | Dataset | Detail
 [voc_make_list.py](./voc_make_list.py) | VOC 2007/2012 | Generate a list of annotated images
 [voc_annotator.py](./voc_annotator.py) | - | VOC style GUI annotator
 [voc_xml_to_txt.py](./voc_xml_to_txt.py) | - | Generate txt files from XML annotation files
+[visualize_txt_annot.py](./visualize_txt_annot.py) | _ | Visualize annotated images based on txt files
 
 ## Batch files
 
@@ -49,7 +50,7 @@ Shortcut | Description
 You can download COCO 2017 dataset at [here](http://cocodataset.org/).
 
 ```bash
-"coco_root_path"
+"coco_root_dir"
 ├── annotations
 │   ├── instances_train2017.json
 │   └── instances_val2017.json
@@ -72,7 +73,7 @@ You can download COCO 2017 dataset at [here](http://cocodataset.org/).
 You can download VOC 2007/2012 datasets at [here](http://host.robots.ox.ac.uk/pascal/VOC/).
 
 ```bash
-"voc_root_path"
+"voc_root_dir"
 ├── VOC2007
 │   ├── Annotations
 │   │   ├── 000001.xml
