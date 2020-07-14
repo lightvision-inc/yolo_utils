@@ -4,7 +4,7 @@ import argparse
 
 
 def main(args):
-    img_path = os.path.join(args.root_path, args.stage + '2017')
+    img_path = os.path.join(args.root_dir, args.stage + '2017')
     txt_path = []
     for _, _, f in os.walk(img_path):
         for file in f:
@@ -22,7 +22,7 @@ def parse_arguments(argv):
 
     parser.add_argument('--stage', type=str,
                         help='either train or val', default='val')
-    parser.add_argument('--root_path', type=str,
+    parser.add_argument('--root_dir', type=str,
                         help='root of COCO dataset', default='E:/coco')
 
     return parser.parse_args(argv)

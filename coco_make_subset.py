@@ -17,8 +17,8 @@ def remove_annot_files(path):
 
 
 def main(args):
-    annot_path = os.path.join(args.root_path, 'annotations')
-    img_path = os.path.join(args.root_path, args.stage + '2017')
+    annot_path = os.path.join(args.root_dir, 'annotations')
+    img_path = os.path.join(args.root_dir, args.stage + '2017')
 
     remove_annot_files(img_path)
 
@@ -66,7 +66,7 @@ def parse_arguments(argv):
 
     parser.add_argument('--stage', type=str,
                         help='either train or val', default='val')
-    parser.add_argument('--root_path', type=str,
+    parser.add_argument('--root_dir', type=str,
                         help='root of COCO dataset', default='E:/coco')
     parser.add_argument('--category_ids', type=int,
                         help='list of category ids for subset', default=[3, 6, 8])

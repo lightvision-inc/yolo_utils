@@ -5,7 +5,7 @@ import argparse
 
 def main(args):
 
-    path = args.root_path + '/{}/JPEGImages/'
+    path = args.root_dir + '/{}/JPEGImages/'
     for sub in args.sub_dir:
         img_path = []
         for _, _, f in os.walk(path.format(sub)):
@@ -23,7 +23,7 @@ def parse_arguments(argv):
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--root_path', type=str,
+    parser.add_argument('--root_dir', type=str,
                         help='root of VOC development kit', default='E:/VOCdevkit')
     parser.add_argument('--sub_dir', action='append', type=str,
                         help='list of target VOC datasets')

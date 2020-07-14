@@ -9,15 +9,15 @@ sets = [('2012', 'train'), ('2012', 'val'),
 
 def main(args):
 
-    path = args.root_path
+    root_dir = args.root_dir
     classes = args.classes
 
     # remove existing txt files for annotation
     for year, _ in sets:
-        utils.remove_annot_files(os.path.join(path, 'VOC{}'.format(year)))
+        utils.remove_annot_files(os.path.join(root_dir, 'VOC{}'.format(year)))
 
     for year, img_set in sets:
-        sub_dir = os.path.join(path, 'VOC{}'.format(year))
+        sub_dir = os.path.join(root_dir, 'VOC{}'.format(year))
         img_ids = open(
             '{}/ImageSets/Main/{}.txt'.format(sub_dir, img_set)).read().strip().split()
 
@@ -29,7 +29,7 @@ def parse_arguments(argv):
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--root_path', type=str,
+    parser.add_argument('--root_dir', type=str,
                         help='root of VOC development kit', default='E:/VOCdevkit')
     parser.add_argument('--classes', type=str,
                         help='list of classes for subset', default=['car'])

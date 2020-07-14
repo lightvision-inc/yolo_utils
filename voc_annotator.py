@@ -136,8 +136,8 @@ def array2xml(xml):
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--root_path', type=str,
-                    help='root path of the dataset; directory structure must be same as VOC 2007/2012', default='E:/VOCdevkit/VOC2007')
+parser.add_argument('--root_dir', type=str,
+                    help='root directory of the dataset; directory structure must be same as VOC 2007/2012', default='E:/VOCdevkit/VOC2007')
 parser.add_argument('--img_ext', type=str,
                     help='extension of image files', default='jpg')
 parser.add_argument('--default_name', type=str,
@@ -146,13 +146,13 @@ parser.add_argument('--default_name', type=str,
 args = parser.parse_args(sys.argv[1:])
 
 # parsing image files
-img_list = glob.glob('{}/JPEGImages/*.{}'.format(args.root_path, args.img_ext))
+img_list = glob.glob('{}/JPEGImages/*.{}'.format(args.root_dir, args.img_ext))
 if len(img_list) == 0:
     print('no {} image files'.format(args.img_ext))
     exit()
 
 # making a directory for annotation
-annot_path = '{}/Annotations'.format(args.root_path)
+annot_path = '{}/Annotations'.format(args.root_dir)
 if not os.path.exists(annot_path):
     os.mkdir(annot_path)
 

@@ -8,7 +8,7 @@ def main(args):
 
     classes = args.classes
     for sub in args.sub_dir:
-        path = os.path.join(args.root_path, sub)
+        path = os.path.join(args.root_dir, sub)
 
         # remove existing txt files for annotation
         utils.remove_annot_files(path)
@@ -24,7 +24,7 @@ def parse_arguments(argv):
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--root_path', type=str,
+    parser.add_argument('--root_dir', type=str,
                         help='root of VOC development kit', default='E:/VOCdevkit')
     parser.add_argument('--sub_dir', action='append', type=str,
                         help='root of VOC development kit')
