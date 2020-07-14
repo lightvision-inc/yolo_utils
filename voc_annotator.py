@@ -12,14 +12,29 @@ import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 import draw_utils as utils
 
+from multiprocessing import Lock
+
 
 def annotation(event, x, y, flags, param):
-    global ref_pt, prev_pt, curr_pt, tl, br, name
+    global ref_pt, prev_pt, curr_pt, tl, br, name, mutex
+
+    # ctrl + left click: remove a specific box
+    if keyboard.is_pressed('ctrl'):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            mutex.acquire()
+            for i in range(len(name)):
+                if tl[i][0] < x and x < br[i][0] and tl[i][1] < y and y < br[i][1]:
+                    del tl[i], br[i], name[i]
+                    break
+            mutex.release()
+        return
+
+    curr_pt = (x, y)
 
     if event == cv2.EVENT_LBUTTONDOWN:
         ref_pt = (x, y)
 
-    if event == cv2.EVENT_LBUTTONUP:
+    if event == cv2.EVENT_LBUTTONUP and ref_pt is not None:
         tl.append(ref_pt)
         br.append(curr_pt)
         if args.default_name is None:
@@ -36,14 +51,15 @@ def annotation(event, x, y, flags, param):
 
         ref_pt = None
 
-    if event == cv2.EVENT_RBUTTONDOWN:
+    if event == cv2.EVENT_RBUTTONDOWN and 0 < len(name):
         tl.pop()
         br.pop()
         name.pop()
 
-    curr_pt = (x, y)
-    if keyboard.is_pressed(' '):
+    # space: relocate top-left corner of the box
+    if keyboard.is_pressed(' ') and ref_pt is not None:
         ref_pt = tuple(np.add(ref_pt, np.subtract(curr_pt, prev_pt)))
+
     prev_pt = curr_pt
 
 
@@ -166,6 +182,7 @@ curr_pt = None
 tl = []
 br = []
 name = []
+mutex = Lock()
 
 img_path = os.path.normpath(img_list[idx])
 xml_path = get_xml_path(img_path)
@@ -184,8 +201,10 @@ while True:
     if ref_pt is not None:
         cv2.rectangle(clone, ref_pt, curr_pt, utils.G, 1)
 
+    mutex.acquire()
     for i in range(len(name)):
         utils.draw_annot(clone, name[i], tl[i], br[i])
+    mutex.release()
 
     cv2.imshow('annotator', clone)
 
