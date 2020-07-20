@@ -15,8 +15,17 @@ import draw_utils as utils
 from multiprocessing import Lock
 
 
+def minmax(pt):
+    global img
+
+    x = np.min([np.max([0, pt[0]]), img.shape[1] - 1])
+    y = np.min([np.max([0, pt[1]]), img.shape[0] - 1])
+
+    return (x, y)
+
+
 def annotation(event, x, y, flags, param):
-    global ref_pt, prev_pt, curr_pt, tl, br, name, mutex
+    global ref_pt, prev_pt, curr_pt, tl, br, name, save_tl, save_br, save_name, mutex
 
     # ctrl + left click: remove a specific box
     if keyboard.is_pressed('ctrl'):
@@ -30,6 +39,7 @@ def annotation(event, x, y, flags, param):
         return
 
     curr_pt = (x, y)
+    curr_pt = minmax(curr_pt)
 
     if event == cv2.EVENT_LBUTTONDOWN:
         ref_pt = (x, y)
@@ -58,7 +68,8 @@ def annotation(event, x, y, flags, param):
 
     # space: relocate top-left corner of the box
     if keyboard.is_pressed(' ') and ref_pt is not None:
-        ref_pt = tuple(np.add(ref_pt, np.subtract(curr_pt, prev_pt)))
+        reloc_pt = np.add(ref_pt, np.subtract(curr_pt, prev_pt))
+        ref_pt = tuple(minmax(reloc_pt))
 
     prev_pt = curr_pt
 
@@ -182,6 +193,9 @@ curr_pt = None
 tl = []
 br = []
 name = []
+save_tr = None
+save_br = None
+save_name = None
 mutex = Lock()
 
 img_path = os.path.normpath(img_list[idx])
@@ -217,6 +231,21 @@ while True:
             tl = []
             br = []
             name = []
+
+    if key == ord('y'):
+        x = curr_pt[0]
+        y = curr_pt[1]
+        for i in range(len(name)):
+            if tl[i][0] < x and x < br[i][0] and tl[i][1] < y and y < br[i][1]:
+                save_tl = tl[i]
+                save_br = br[i]
+                save_name = name[i]
+                break
+
+    if key == ord('v') and save_name is not None:
+        tl.append(save_tl)
+        br.append(save_br)
+        name.append(save_name)
 
     if key == ord('g') or key == ord('F') or key == ord('f') or key == ord('d') or key == ord('q'):
         # save current data
