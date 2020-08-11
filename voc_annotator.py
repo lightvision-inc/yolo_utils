@@ -198,6 +198,8 @@ save_br = None
 save_name = None
 mutex = Lock()
 
+cross_hair = True
+
 img_path = os.path.normpath(img_list[idx])
 xml_path = get_xml_path(img_path)
 
@@ -212,7 +214,7 @@ while True:
 
     utils.draw_nav_string(clone, img_list, idx)
 
-    if curr_pt is not None:
+    if cross_hair and curr_pt is not None:
         utils.draw_crosshair(clone, curr_pt)
 
     if ref_pt is not None:
@@ -226,6 +228,9 @@ while True:
     cv2.imshow('annotator', clone)
 
     key = cv2.waitKey(1) & 0xFF
+
+    if key == ord('h'):
+        cross_hair = not cross_hair
 
     if key == ord('c'):
         msg_box = tk.messagebox.askquestion(
