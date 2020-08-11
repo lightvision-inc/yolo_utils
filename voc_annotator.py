@@ -25,7 +25,7 @@ def minmax(pt):
 
 
 def annotation(event, x, y, flags, param):
-    global ref_pt, prev_pt, curr_pt, tl, br, name, save_tl, save_br, save_name, mutex
+    global ref_pt, prev_pt, curr_pt, tl, br, name, mutex
 
     # ctrl + left click: remove a specific box
     if keyboard.is_pressed('ctrl'):
@@ -211,6 +211,9 @@ while True:
     clone = img.copy()
 
     utils.draw_nav_string(clone, img_list, idx)
+
+    if curr_pt is not None:
+        utils.draw_crosshair(clone, curr_pt)
 
     if ref_pt is not None:
         cv2.rectangle(clone, ref_pt, curr_pt, utils.G, 1)

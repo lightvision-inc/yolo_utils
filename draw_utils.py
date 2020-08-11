@@ -7,6 +7,7 @@ W = (255, 255, 255)
 R = (0, 0, 255)
 G = (0, 255, 0)
 B = (255, 0, 0)
+Z = (0, 0, 0)
 
 
 def draw_nav_string(img, img_list, idx):
@@ -32,3 +33,14 @@ def draw_annot(img, name, tl, br):
     cv2.rectangle(img, (tl[0], tl[1] - txt_sz[1] - 4),
                   (tl[0] + txt_sz[0], tl[1]), R, -1)
     cv2.putText(img, name, (tl[0], tl[1] - 4), font, 1, W, 1)
+
+
+def draw_crosshair(img, pt):
+
+    cv2.line(img, (0, pt[1] - 1), (img.shape[1], pt[1] - 1), W, 1)
+    cv2.line(img, (0, pt[1]), (img.shape[1], pt[1]), Z, 1)
+    cv2.line(img, (0, pt[1] + 1), (img.shape[1], pt[1] + 1), W, 1)
+
+    cv2.line(img, (pt[0] - 1, 0), (pt[0] - 1, img.shape[0]), W, 1)
+    cv2.line(img, (pt[0], 0), (pt[0], img.shape[0]), Z, 1)
+    cv2.line(img, (pt[0] + 1, 0), (pt[0] + 1, img.shape[0]), W, 1)
