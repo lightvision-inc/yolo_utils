@@ -27,6 +27,9 @@ def minmax(pt):
 def annotation(event, x, y, flags, param):
     global ref_pt, prev_pt, curr_pt, tl, br, name, mutex
 
+    curr_pt = (x, y)
+    curr_pt = minmax(curr_pt)
+
     # ctrl + left click: remove a specific box
     if keyboard.is_pressed('ctrl'):
         if event == cv2.EVENT_LBUTTONDOWN:
@@ -37,9 +40,6 @@ def annotation(event, x, y, flags, param):
                     break
             mutex.release()
         return
-
-    curr_pt = (x, y)
-    curr_pt = minmax(curr_pt)
 
     if event == cv2.EVENT_LBUTTONDOWN:
         ref_pt = (x, y)

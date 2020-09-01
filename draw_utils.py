@@ -35,6 +35,30 @@ def draw_annot(img, name, tl, br):
     cv2.putText(img, name, (tl[0], tl[1] - 4), font, 1, W, 1)
 
 
+def draw_polygon(img, polygon, name):
+
+    for i in range(len(polygon) - 1):
+        cv2.line(img, polygon[i], polygon[i + 1], R, 1)
+    cv2.line(img, polygon[0], polygon[-1], R, 1)
+
+    if name is None:
+        return
+
+    name_sz, _ = cv2.getTextSize(name, font, 1, 1)
+
+    avg = [0, 0]
+    for i in range(len(polygon)):
+        avg[0] += polygon[i][0]
+        avg[1] += polygon[i][1]
+
+    avg = [int(e / len(polygon)) for e in avg]
+    avg[0] -= int(name_sz[0] / 2)
+    avg = tuple(avg)
+
+    cv2.putText(img, name, avg, font, 1, W, 5)
+    cv2.putText(img, name, avg, font, 1, R, 1)
+
+
 def draw_crosshair(img, pt):
 
     cv2.line(img, (0, pt[1] - 1), (img.shape[1], pt[1] - 1), W, 1)
