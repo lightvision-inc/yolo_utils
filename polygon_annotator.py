@@ -130,7 +130,10 @@ def get_paired_data(img_path, xml_path):
 
 
 def xml2array(xml):
-    global polygons
+    global img, polygons
+
+    w = img.shape[1]
+    h = img.shape[0]
 
     polygons = []
 
@@ -141,22 +144,27 @@ def xml2array(xml):
         polygon = []
         num = int(e.find('num').text)
         for i in range(num):
-            x = int(e.find('x{}'.format(i)).text)
-            y = int(e.find('y{}'.format(i)).text)
+            x = int(float(e.find('x{}'.format(i)).text) * w)
+            y = int(float(e.find('y{}'.format(i)).text) * h)
             polygon.append((x, y))
         polygons.append(polygon)
 
 
 def array2xml(xml):
-    global polygons
+    global img, polygons
+
+    w = img.shape[1]
+    h = img.shape[0]
 
     for i in range(len(polygons)):
         obj = ET.SubElement(xml, 'polygon')
         ET.SubElement(obj, 'name').text = names[i]
         ET.SubElement(obj, 'num').text = str(len(polygons[i]))
         for j in range(len(polygons[i])):
-            ET.SubElement(obj, 'x{}'.format(j)).text = str(polygons[i][j][0])
-            ET.SubElement(obj, 'y{}'.format(j)).text = str(polygons[i][j][1])
+            ET.SubElement(obj, 'x{}'.format(j)).text = str(
+                polygons[i][j][0] / w)
+            ET.SubElement(obj, 'y{}'.format(j)).text = str(
+                polygons[i][j][1] / h)
 
 
 parser = argparse.ArgumentParser()
