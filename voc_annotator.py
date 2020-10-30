@@ -178,6 +178,8 @@ if len(img_list) == 0:
     print('no {} image files'.format(args.img_ext))
     exit()
 
+img_list.sort()
+
 # making a directory for annotation
 annot_path = '{}/Annotations'.format(args.root_dir)
 if not os.path.exists(annot_path):
