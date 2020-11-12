@@ -13,6 +13,7 @@ import xml.etree.ElementTree as ET
 import draw_utils as utils
 
 from multiprocessing import Lock
+from pathlib import Path
 
 
 def minmax(pt):
@@ -124,18 +125,19 @@ def get_paired_data(img_path, xml_path):
     if os.path.isfile(xml_path):
         xml = ET.parse(xml_path).getroot()
     else:
-        xml = construct_xml(img_path)
+        xml = construct_xml(Path(img_path).stem)
 
     return img, xml
 
 
 def xml2array(xml):
-    global img, polygons
+    global img, polygons, names
 
     w = img.shape[1]
     h = img.shape[0]
 
     polygons = []
+    names = []
 
     for e in xml.iter('polygon'):
         name = e.find('name').text
