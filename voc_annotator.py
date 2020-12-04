@@ -105,8 +105,8 @@ def get_xml_path(img_path):
     filename = os.path.splitext(basename)[0]
 
     xml_path = img_path.split(os.sep)
-    xml_path = '{}/Annotations/{}.xml'.format(
-        os.path.join(*xml_path[:-2]), filename)
+    xml_path = xml_path[0] + os.sep + \
+        os.path.join(*xml_path[1:-2], 'Annotations', filename + '.xml')
 
     return xml_path
 
@@ -271,6 +271,8 @@ while True:
         if key == ord('g'):
             answer = tk.simpledialog.askinteger(
                 title='Q', prompt='Enter frame index to move')
+            if answer is None:
+                continue
             idx = np.min([answer - 1, len(img_list) - 1])
             idx = np.max([idx, 0])
         elif key == ord('F') or key == ord('f'):
