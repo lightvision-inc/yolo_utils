@@ -208,7 +208,7 @@ xml_path = get_xml_path(img_path)
 img, xml = get_paired_data(img_list[idx], xml_path)
 xml2array(xml)
 
-cv2.namedWindow('annotator')
+cv2.namedWindow('annotator', cv2.WINDOW_NORMAL)
 cv2.setMouseCallback('annotator', annotation)
 
 while True:
