@@ -1,0 +1,1 @@
+pyinstaller --onefile --hidden-import=pkg_resources.py2_warn --paths="%PYTHONHOME%/Lib/site-packages/cv2" polygon_annotator.py

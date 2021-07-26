@@ -50,7 +50,7 @@ def is_point_in_path(x: int, y: int, poly) -> bool:
 
 
 def annotation(event, x, y, flags, param):
-    global curr_polygon, polygons, names, ref_pt, curr_pt, mutex
+    global curr_polygon, polygons, names, lot_ids, ref_pt, curr_pt, mutex
 
     curr_pt = (x, y)
     curr_pt = minmax(curr_pt)
@@ -75,11 +75,24 @@ def annotation(event, x, y, flags, param):
                 [curr_pt[0] - ref_pt[0], curr_pt[1] - ref_pt[1]])
             if norm < 10:
                 answer = tk.simpledialog.askstring(
-                    title='Q', prompt='Enter object name')
-                if answer is not None:
-                    names.append(answer.upper())
-                    polygons.append(curr_polygon)
-                    curr_polygon = []
+                    title='Q', prompt='Enter region name')
+                if answer is None:
+                    return
+
+                name = answer.upper()
+                names.append(name)
+                polygons.append(curr_polygon)
+                curr_polygon = []
+
+                if 'P' in name:
+                    answer = tk.simpledialog.askstring(
+                        title='Q', prompt='Enter lot id')
+                    if answer is not None:
+                        lot_ids.append(int(answer))
+                    else:
+                        lot_ids.append(-1)
+                else:
+                    lot_ids.append(-1)
             else:
                 curr_polygon.append(curr_pt)
 
@@ -131,17 +144,24 @@ def get_paired_data(img_path, xml_path):
 
 
 def xml2array(xml):
-    global img, polygons, names
+    global img, polygons, names, lot_ids
 
     w = img.shape[1]
     h = img.shape[0]
 
     polygons = []
     names = []
+    lot_ids = []
 
     for e in xml.iter('polygon'):
         name = e.find('name').text
         names.append(name)
+
+        if 'P' in name:
+            lot_id = int(e.find('lot_id').text)
+            lot_ids.append(lot_id)
+        else:
+            lot_ids.append(-1)
 
         polygon = []
         num = int(e.find('num').text)
@@ -153,7 +173,7 @@ def xml2array(xml):
 
 
 def array2xml(xml):
-    global img, polygons
+    global img, polygons, names, lot_ids
 
     w = img.shape[1]
     h = img.shape[0]
@@ -161,6 +181,8 @@ def array2xml(xml):
     for i in range(len(polygons)):
         obj = ET.SubElement(xml, 'polygon')
         ET.SubElement(obj, 'name').text = names[i]
+        if 'P' in names[i]:
+            ET.SubElement(obj, 'lot_id').text = str(lot_ids[i])
         ET.SubElement(obj, 'num').text = str(len(polygons[i]))
         for j in range(len(polygons[i])):
             ET.SubElement(obj, 'x{}'.format(j)).text = str(
@@ -194,6 +216,7 @@ tk.Tk().withdraw()
 
 idx = 0
 names = []
+lot_ids = []
 polygons = []
 curr_polygon = []
 ref_pt = None
@@ -208,7 +231,7 @@ xml_path = os.path.normpath(get_xml_path(img_path))
 img, xml = get_paired_data(img_list[idx], xml_path)
 xml2array(xml)
 
-cv2.namedWindow('set_polygons')
+cv2.namedWindow('set_polygons', cv2.WINDOW_NORMAL)
 cv2.setMouseCallback('set_polygons', annotation)
 
 while True:
