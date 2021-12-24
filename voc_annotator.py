@@ -77,7 +77,7 @@ def annotation(event, x, y, flags, param):
 def construct_xml(filename, img):
 
     data = ET.Element('annotation')
-    ET.SubElement(data, 'filename').text = filename
+    # ET.SubElement(data, 'filename').text = filename
 
     sz = ET.SubElement(data, 'size')
     ET.SubElement(sz, 'width').text = str(img.shape[1])
@@ -113,7 +113,10 @@ def get_xml_path(img_path):
 
 def get_paired_data(img_path, xml_path):
 
-    img = cv2.imread(img_path)
+    stream = open(img_path, 'rb')
+    bytes = bytearray(stream.read())
+    np_arr = np.asarray(bytes, dtype=np.uint8)
+    img = cv2.imdecode(np_arr, cv2.IMREAD_UNCHANGED)
 
     xml = None
     if os.path.isfile(xml_path):
