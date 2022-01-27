@@ -9,12 +9,13 @@ import draw_utils as utils
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--list_file', type=str,
-                    help='file that contains a list of annotated images', default='train.txt')
+                    help='file that contains a list of annotated images')
 parser.add_argument('--name_file', type=str,
-                    help='file that contains a list of class names', default='yolov3.names')
+                    help='file that contains a list of class names')
 
 args = parser.parse_args(sys.argv[1:])
 
+draw_annot = True
 names = None
 if args.name_file is not None:
     with open(args.name_file) as f:
@@ -34,6 +35,7 @@ with open(args.list_file) as f:
         if '.jpg' or '.png' in l:
             l = l.replace('.jpg', '.txt')
             l = l.replace('.png', '.txt')
+            skip = True
             with open(l) as txt_file:
                 for annot in txt_file:
                     idx, cx, cy, bw, bh = annot.split()
@@ -43,10 +45,13 @@ with open(args.list_file) as f:
                     bh = float(bh) * ih
                     tl = (int(cx - bw / 2), int(cy - bh / 2))
                     br = (int(cx + bw / 2), int(cy + bh / 2))
-                    if names is not None:
-                        utils.draw_annot(img, names[int(idx)], tl, br)
-                    else:
-                        utils.draw_annot(img, idx, tl, br)
+                    if int(idx) == 68:
+                        skip = False
+                    if draw_annot:
+                        if names is not None:
+                            utils.draw_annot(img, names[int(idx)], tl, br)
+                        else:
+                            utils.draw_annot(img, idx, tl, br)
         else:
             print('Txt annotation file is not available')
 
