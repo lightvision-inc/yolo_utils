@@ -19,7 +19,7 @@ with open(args.list_file) as f:
         if '.jpg' or '.png' in l:
             l = l.replace('.jpg', '.txt')
             l = l.replace('.png', '.txt')
-            skip = True
+
             with open(l) as txt_file:
                 for annot in txt_file:
                     idx, _, _, _, _ = annot.split()
