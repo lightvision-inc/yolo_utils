@@ -41,10 +41,12 @@ def convert_annotation(path, filename, classes):
     for obj in root.iter('object'):
         difficult = obj.find('difficult').text
         c = obj.find('name').text
-        if c not in classes or int(difficult) == 1:
-            continue
-
-        cid = classes.index(c)
+        if classes is None:
+            cid = int(c)
+        else:
+            if c not in classes or int(difficult) == 1:
+                continue
+            cid = classes.index(c)
         xmlbox = obj.find('bndbox')
         b = (float(xmlbox.find('xmin').text), float(xmlbox.find('xmax').text), float(
             xmlbox.find('ymin').text), float(xmlbox.find('ymax').text))
