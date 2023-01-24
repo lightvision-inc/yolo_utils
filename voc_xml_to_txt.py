@@ -9,6 +9,7 @@ def main(args):
     classes = args.classes
     for sub in args.sub_dir:
         path = os.path.join(args.root_dir, sub)
+        print(path)
 
         # remove existing txt files for annotation
         utils.remove_annot_files(path)
@@ -17,6 +18,7 @@ def main(args):
             for file in f:
                 if '.xml' in file:
                     filename = file.replace('.xml', '')
+                    print(filename)
                     utils.convert_annotation(path, filename, classes)
 
 
