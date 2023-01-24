@@ -1,5 +1,7 @@
+anchors
 build
 dist
 *.vscode
 *.pyc
 *.spec
+*.txt
