@@ -2,3 +2,5 @@ numpy
 keyboard
 opencv-python
 pyinstaller
+pandas
+tqdm

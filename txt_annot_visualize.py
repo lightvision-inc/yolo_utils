@@ -1,6 +1,5 @@
 import sys
 import argparse
-import keyboard
 
 import cv2
 import draw_utils as utils

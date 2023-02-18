@@ -1,7 +1,8 @@
 import sys
 import argparse
-
 import matplotlib.pyplot as plt
+
+from tqdm import tqdm
 
 
 parser = argparse.ArgumentParser()
@@ -13,7 +14,7 @@ args = parser.parse_args(sys.argv[1:])
 
 x = []
 with open(args.list_file) as f:
-    for l in f.readlines():
+    for l in tqdm(f.readlines()):
         l = l.rstrip()
 
         if '.jpg' or '.png' in l:
