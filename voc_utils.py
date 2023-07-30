@@ -1,4 +1,5 @@
 import os
+import cv2
 import glob
 import xml.etree.ElementTree as ET
 
@@ -56,3 +57,32 @@ def convert_annotation(path, filename, classes):
             '{}/JPEGImages/{}.txt'.format(path, filename), 'a+')
         out_file.write('{} {:f} {:f} {:f} {:f}\n'.format(
             cid, bb[0], bb[1], bb[2], bb[3]))
+
+
+def privacy_protection(path, img_filename, classes):
+
+    if not os.path.exists(f'{path}/PrivacyProtected'):
+        os.makedirs(f'{path}/PrivacyProtected')
+
+    filename = img_filename[:img_filename.rfind('.')]
+
+    img = cv2.imread(f'{path}/JPEGImages/{img_filename}')
+    annot_file = open(f'{path}/Annotations/{filename}.xml')
+    tree = ET.parse(annot_file)
+    root = tree.getroot()
+    size = root.find('size')
+    w = int(size.find('width').text)
+    h = int(size.find('height').text)
+
+    for obj in root.iter('object'):
+        c = obj.find('name').text
+        if c not in classes:
+            continue
+
+        xmlbox = obj.find('bndbox')
+        pt1 = (int(xmlbox.find('xmin').text), int(xmlbox.find('ymin').text))
+        pt2 = (int(xmlbox.find('xmax').text), int(xmlbox.find('ymax').text))
+
+        img = cv2.rectangle(img, pt1, pt2, (0, 0, 0), -1)
+
+    cv2.imwrite(f'{path}/PrivacyProtected/{img_filename}', img)
