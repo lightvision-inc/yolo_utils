@@ -146,6 +146,36 @@ def xml2array(xml):
         tl.append((xmin, ymin))
         br.append((xmax, ymax))
 
+def xmlclass2array(xml, default_name):
+    global tl, br, name
+
+    new_tl = []
+    new_br = []
+    new_name = []
+
+    for i in range(len(tl)):
+        if name[i]==default_name:
+            new_tl.append(tl[i])
+            new_br.append(br[i])
+            new_name.append(name[i])
+
+    for e in xml.iter('object'):
+        current_name = e.find('name').text
+        if current_name != default_name:
+            new_name.append(e.find('name').text)
+            new_bb = e.find('bndbox')
+
+            xmin = int(new_bb[0].text)
+            ymin = int(new_bb[1].text)
+            xmax = int(new_bb[2].text)
+            ymax = int(new_bb[3].text)
+
+            new_tl.append((xmin, ymin))
+            new_br.append((xmax, ymax))
+
+    tl = new_tl
+    br = new_br
+    name = new_name
 
 def array2xml(xml):
     global tl, br, name
@@ -291,5 +321,7 @@ while True:
         img, xml = get_paired_data(img_list[idx], xml_path)
         if key != ord('F'):
             xml2array(xml)
+        if key == ord('F') and args.default_name!=None:
+            xmlclass2array(xml, args.default_name)
 
 cv2.destroyAllWindows()
