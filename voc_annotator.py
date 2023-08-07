@@ -202,6 +202,8 @@ parser.add_argument('--img_ext', type=str,
                     help='extension of image files', default='jpg')
 parser.add_argument('--default_name', type=str,
                     help='default name of annotated objects')
+parser.add_argument('--lpr_mode', type=bool,
+                    help='change ui for lpr mode', default = False)
 
 args = parser.parse_args(sys.argv[1:])
 
@@ -234,6 +236,7 @@ save_name = None
 mutex = Lock()
 
 cross_hair = True
+draw_annot = True
 
 img_path = os.path.normpath(img_list[idx])
 xml_path = get_xml_path(img_path)
@@ -246,8 +249,8 @@ cv2.setMouseCallback('annotator', annotation)
 
 while True:
     clone = img.copy()
-
-    utils.draw_nav_string(clone, img_list, idx)
+    if not args.lpr_mode:
+        utils.draw_nav_string(clone, img_list, idx)
 
     if cross_hair and curr_pt is not None:
         utils.draw_crosshair(clone, curr_pt)
@@ -256,8 +259,9 @@ while True:
         cv2.rectangle(clone, ref_pt, curr_pt, utils.G, 1)
 
     mutex.acquire()
-    for i in range(len(name)):
-        utils.draw_annot(clone, name[i], tl[i], br[i])
+    if draw_annot:
+        for i in range(len(name)):
+            utils.draw_annot(clone, name[i], tl[i], br[i])
     mutex.release()
 
     cv2.imshow('annotator', clone)
@@ -266,6 +270,9 @@ while True:
 
     if key == ord('h'):
         cross_hair = not cross_hair
+
+    if key == ord('a'):
+        draw_annot = not draw_annot
 
     if key == ord('c'):
         msg_box = tk.messagebox.askquestion(
