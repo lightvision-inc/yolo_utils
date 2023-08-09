@@ -236,7 +236,7 @@ save_name = None
 mutex = Lock()
 
 cross_hair = True
-draw_annot = True
+draw_annot = 2
 
 img_path = os.path.normpath(img_list[idx])
 xml_path = get_xml_path(img_path)
@@ -259,9 +259,12 @@ while True:
         cv2.rectangle(clone, ref_pt, curr_pt, utils.G, 1)
 
     mutex.acquire()
-    if draw_annot:
+    if (draw_annot==2):
         for i in range(len(name)):
             utils.draw_annot(clone, name[i], tl[i], br[i])
+    elif (draw_annot==1):
+        for i in range(len(name)):
+            utils.draw_annot_2(clone, name[i], tl[i], br[i])
     mutex.release()
 
     cv2.imshow('annotator', clone)
@@ -272,7 +275,12 @@ while True:
         cross_hair = not cross_hair
 
     if key == ord('a'):
-        draw_annot = not draw_annot
+        if draw_annot==2:
+            draw_annot=1
+        elif draw_annot==1:
+            draw_annot=0
+        else:
+            draw_annot=2
 
     if key == ord('c'):
         msg_box = tk.messagebox.askquestion(

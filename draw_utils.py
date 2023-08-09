@@ -34,6 +34,9 @@ def draw_annot(img, name, tl, br):
                   (tl[0] + txt_sz[0], tl[1]), R, -1)
     cv2.putText(img, name, (tl[0], tl[1] - 4), font, 1, W, 1)
 
+def draw_annot_2(img, name, tl, br):
+    cv2.rectangle(img, tl, br, R, 1)
+
 
 def draw_polygon(img, polygon, name):
 
