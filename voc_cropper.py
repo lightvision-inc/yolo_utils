@@ -42,6 +42,8 @@ def save_crops(current_path, img_name, img_ext_str, annotations):
     image_path = current_path+img_name+img_ext_str
     image = Image.open(image_path)
     for i in range(len(annotations)):
+        if (annotation['ymax']-annotation['ymin']<25):
+            continue
         annotation = annotations[i]
         crop_path = current_path + 'cropped/' + img_name + '_{}'.format(i) + img_ext_str
         cropped_image = image.crop((annotation['xmin'], annotation['ymin'], 
