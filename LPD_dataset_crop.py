@@ -38,34 +38,32 @@ def save_data(lpd_box_list, vd_xyxy, image, filename, opt, i):
     cropped_image.save(crop_path)
     
     f = open('{}/{}_{}.txt'.format(opt.outdir, filename, i), "w+")
-    for lpd_xyxy in lpd_box_list:  
+    for lpd_xyxy in lpd_box_list:
+        new_lpd = []
         if (lpd_xyxy[2] - lpd_xyxy[0]) * (lpd_xyxy[3] - lpd_xyxy[1]) > opt.plate_size:
-            if ((lpd_xyxy[0] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[1] in np.arange(vd_xyxy[1], vd_xyxy[3]))
-                    or (lpd_xyxy[0] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[3] in np.arange(vd_xyxy[1], vd_xyxy[3]))
-                    or (lpd_xyxy[2] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[1] in np.arange(vd_xyxy[1], vd_xyxy[3]))
-                    or (lpd_xyxy[2] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[3] in np.arange(vd_xyxy[1], vd_xyxy[3]))):
-                lpd_xyxy[0] = lpd_xyxy[0] - vd_xyxy[0]
-                lpd_xyxy[1] = lpd_xyxy[1] - vd_xyxy[1]
-                lpd_xyxy[2] = lpd_xyxy[2] - vd_xyxy[0]
-                lpd_xyxy[3] = lpd_xyxy[3] - vd_xyxy[1]
+            if not(lpd_xyxy[0] > vd_xyxy[2] or lpd_xyxy[2] < vd_xyxy[0] or lpd_xyxy[1] > vd_xyxy[3] or lpd_xyxy[3] < vd_xyxy[1]):
+                new_lpd.append(lpd_xyxy[0] - vd_xyxy[0])
+                new_lpd.append(lpd_xyxy[1] - vd_xyxy[1])
+                new_lpd.append(lpd_xyxy[2] - vd_xyxy[0])
+                new_lpd.append(lpd_xyxy[3] - vd_xyxy[1])
                 box_w = vd_xyxy[2] - vd_xyxy[0]
                 box_h = vd_xyxy[3] - vd_xyxy[1]
 
                 lpd_xyxy = xyxytoxywh(lpd_xyxy)
 
-                f.write("{} {:f} {:f} {:f} {:f}\n".format("0", lpd_xyxy[0]/box_w, lpd_xyxy[1]/box_h, lpd_xyxy[2]/box_w, lpd_xyxy[3]/box_h))
+                f.write("{} {:f} {:f} {:f} {:f}\n".format("0", new_lpd[0]/box_w, new_lpd[1]/box_h, new_lpd[2]/box_w, new_lpd[3]/box_h))
     f.close()
 
 def crop_lpd(lpd_box_list, vd_box_list, image, filename, opt):
     i = 0
     for vd_xyxy in vd_box_list:
+        #print('-------')
+        #print(vd_xyxy)
         check = 0
         for lpd_xyxy in lpd_box_list:
             if (lpd_xyxy[2] - lpd_xyxy[0]) * (lpd_xyxy[3] - lpd_xyxy[1]) > opt.plate_size:
-                if ((lpd_xyxy[0] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[1] in np.arange(vd_xyxy[1], vd_xyxy[3]))
-                    or (lpd_xyxy[0] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[3] in np.arange(vd_xyxy[1], vd_xyxy[3]))
-                    or (lpd_xyxy[2] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[1] in np.arange(vd_xyxy[1], vd_xyxy[3]))
-                    or (lpd_xyxy[2] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[3] in np.arange(vd_xyxy[1], vd_xyxy[3]))):
+                    #print(lpd_xyxy)
+                if not(lpd_xyxy[0] > vd_xyxy[2] or lpd_xyxy[2] < vd_xyxy[0] or lpd_xyxy[1] > vd_xyxy[3] or lpd_xyxy[3] < vd_xyxy[1]):
                     vd_xyxy[0] = min(vd_xyxy[0], lpd_xyxy[0])
                     vd_xyxy[1] = min(vd_xyxy[1], lpd_xyxy[1])
                     vd_xyxy[2] = max(vd_xyxy[2], lpd_xyxy[2])
