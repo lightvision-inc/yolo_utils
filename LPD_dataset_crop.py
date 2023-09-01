@@ -24,19 +24,26 @@ def annotation_to_xyxy(path, filename):
     b = []
 
     for obj in root.iter('object'):
-        xmlbox = obj.find('bndbox')
-        b.append([float(xmlbox.find('xmin').text), float(xmlbox.find('ymin').text), float(
-            xmlbox.find('xmax').text), float(xmlbox.find('ymax').text)])
+        c = obj.find('name').text
+        if c in ('car', 'motorbike', 'license_plate'):
+            xmlbox = obj.find('bndbox')
+            b.append([float(xmlbox.find('xmin').text), float(xmlbox.find('ymin').text), float(
+                xmlbox.find('xmax').text), float(xmlbox.find('ymax').text)])
         
     return b
 
 def save_data(lpd_box_list, vd_xyxy, image, filename, opt, i):
-    f = open('{}/{}_{}.txt'.format(opt.outdir, filename, i), "w+")
     cropped_image = image.crop((vd_xyxy[0], vd_xyxy[1], vd_xyxy[2], vd_xyxy[3]))
     crop_path = '{}/{}_{}.jpg'.format(opt.outdir, filename, i)
     cropped_image.save(crop_path)
+    
+    f = open('{}/{}_{}.txt'.format(opt.outdir, filename, i), "w+")
     for lpd_xyxy in lpd_box_list:  
-        if (lpd_xyxy[0] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[1] in np.arange(vd_xyxy[1], vd_xyxy[3])) or (lpd_xyxy[2] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[3] in np.arange(vd_xyxy[1], vd_xyxy[3])):
+        if (lpd_xyxy[2] - lpd_xyxy[0]) * (lpd_xyxy[3] - lpd_xyxy[1]) > opt.plate_size:
+            if ((lpd_xyxy[0] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[1] in np.arange(vd_xyxy[1], vd_xyxy[3]))
+                    or (lpd_xyxy[0] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[3] in np.arange(vd_xyxy[1], vd_xyxy[3]))
+                    or (lpd_xyxy[2] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[1] in np.arange(vd_xyxy[1], vd_xyxy[3]))
+                    or (lpd_xyxy[2] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[3] in np.arange(vd_xyxy[1], vd_xyxy[3]))):
                 lpd_xyxy[0] = lpd_xyxy[0] - vd_xyxy[0]
                 lpd_xyxy[1] = lpd_xyxy[1] - vd_xyxy[1]
                 lpd_xyxy[2] = lpd_xyxy[2] - vd_xyxy[0]
@@ -54,18 +61,20 @@ def crop_lpd(lpd_box_list, vd_box_list, image, filename, opt):
     for vd_xyxy in vd_box_list:
         check = 0
         for lpd_xyxy in lpd_box_list:
-            if (lpd_xyxy[2] - lpd_xyxy[0]) * (lpd_xyxy[3] - lpd_xyxy[1]) > int(opt.plate_size):
-                if (lpd_xyxy[0] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[1] in np.arange(vd_xyxy[1], vd_xyxy[3])) or (lpd_xyxy[2] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[3] in np.arange(vd_xyxy[1], vd_xyxy[3])):
-                    vd_xyxy[0] = (min(vd_xyxy[0], lpd_xyxy[0]))
-                    vd_xyxy[1] = (min(vd_xyxy[1], lpd_xyxy[1]))
-                    vd_xyxy[2] = (max(vd_xyxy[2], lpd_xyxy[2]))
-                    vd_xyxy[3] = (max(vd_xyxy[3], lpd_xyxy[3]))
+            if (lpd_xyxy[2] - lpd_xyxy[0]) * (lpd_xyxy[3] - lpd_xyxy[1]) > opt.plate_size:
+                if ((lpd_xyxy[0] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[1] in np.arange(vd_xyxy[1], vd_xyxy[3]))
+                    or (lpd_xyxy[0] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[3] in np.arange(vd_xyxy[1], vd_xyxy[3]))
+                    or (lpd_xyxy[2] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[1] in np.arange(vd_xyxy[1], vd_xyxy[3]))
+                    or (lpd_xyxy[2] in np.arange(vd_xyxy[0], vd_xyxy[2]) and lpd_xyxy[3] in np.arange(vd_xyxy[1], vd_xyxy[3]))):
+                    vd_xyxy[0] = min(vd_xyxy[0], lpd_xyxy[0])
+                    vd_xyxy[1] = min(vd_xyxy[1], lpd_xyxy[1])
+                    vd_xyxy[2] = max(vd_xyxy[2], lpd_xyxy[2])
+                    vd_xyxy[3] = max(vd_xyxy[3], lpd_xyxy[3])
                     check = 1
 
         if(check):
             save_data(lpd_box_list, vd_xyxy, image, filename, opt, i)
             i += 1
-
 
 def main(opt):
     if not os.path.exists(opt.outdir):
@@ -96,9 +105,8 @@ def parse_opt(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', type=str, default='01_annotated', help='Specify the folder where the \'car\' and \'lpd\' folders are located')
     parser.add_argument('--outdir', type=str, default='output', help='file/output/dir')
-    parser.add_argument('--plate_size', default='1')
-    opt = parser.parse_args()
-    return opt
+    parser.add_argument('--plate_size', type=int, default='0')
+    return parser.parse_args(argv)
 
 
 if __name__ == '__main__':
