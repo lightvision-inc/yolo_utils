@@ -46,12 +46,10 @@ def save_data(lpd_box_list, vd_xyxy, image, filename, opt, i):
                 new_lpd.append(lpd_xyxy[1] - vd_xyxy[1])
                 new_lpd.append(lpd_xyxy[2] - vd_xyxy[0])
                 new_lpd.append(lpd_xyxy[3] - vd_xyxy[1])
-                box_w = vd_xyxy[2] - vd_xyxy[0]
-                box_h = vd_xyxy[3] - vd_xyxy[1]
 
-                lpd_xyxy = xyxytoxywh(lpd_xyxy)
+                lpd_xywh = xyxytoxywh(new_lpd)
 
-                f.write("{} {:f} {:f} {:f} {:f}\n".format("0", new_lpd[0]/box_w, new_lpd[1]/box_h, new_lpd[2]/box_w, new_lpd[3]/box_h))
+                f.write("{} {:f} {:f} {:f} {:f}\n".format("0", lpd_xywh[0], lpd_xywh[1], lpd_xywh[2], lpd_xywh[3]))
     f.close()
 
 def crop_lpd(lpd_box_list, vd_box_list, image, filename, opt):
