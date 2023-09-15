@@ -56,7 +56,7 @@ def masks_from_img(image: np.ndarray, annot_list: list):
         annot = annot_list[i]
         (x_c, y_c, w, h) = annot[1:5]
         cls_list.append(annot[0])
-        (L, B, R, T) = (int(W*(x_c - w/2)), int(H*(y_c - h/2)), int(W*(x_c + w/2)), int(H*(y_c + h/2)))
+        (L, B, R, T) = (int(H*(x_c - w/2)), int(W*(y_c - h/2)), int(H*(x_c + w/2)), int(W*(y_c + h/2)))
         bbox_mask[L:R, B:T] = 1
         
         # generate mask
@@ -70,7 +70,8 @@ def masks_from_img(image: np.ndarray, annot_list: list):
         # mask_list[i] = mask
 
         # Optionally, set mask as the ellipse!
-        cv2.ellipse(mask, (int((T+B)//2),int((L+R)//2)), (int((T-B)/2.2), int((R-L)/2.2)), angle=0, startAngle=0, endAngle=360, color=255, thickness=cv2.FILLED)
+        cv2.ellipse(mask, (int((L+R)//2),int((T+B)//2)), (int((R-L)/2.2),int((T-B)/2.2)),
+                    angle=0, startAngle=0, endAngle=360, color=255, thickness=cv2.FILLED)
         
         mask_list[i] = mask
 
@@ -91,7 +92,7 @@ def masks_to_annot(rotated_masks,cls_list):
             continue
         L, T, R, B = np.min(rows), np.min(cols), np.max(rows), np.max(cols)
         x_c, y_c, w, h = (L+R)/(2*W), (T+B)/(2*H), (R-L)/W, (B-T)/H
-        bounding_boxes.append([cls_list[i], x_c, y_c, w, h])
+        bounding_boxes.append([cls_list[i], y_c, x_c, h, w])
 
     return bounding_boxes
 
@@ -108,7 +109,7 @@ if __name__ == "__main__":
     parser.add_argument("--directory", type= str, default = "./test_plates")
     parser.add_argument("--img_ext", type= str, default = "png", help="desired image extension")
     parser.add_argument("--max_degree", type= float, default = 45.0, help="max degrees to rotate")
-    parser.add_argument("--rotate_times", type= int, default = 3, help="max times to rotate")
+    parser.add_argument("--rotate_times", type= int, default = 1, help="max times to rotate")
 
     args = parser.parse_args()
     files_list = glob.glob(f'{args.directory}/*.{args.img_ext}')
@@ -132,7 +133,7 @@ if __name__ == "__main__":
             rotated_masks = []
 
             for j in range(len(cls_list)):
-                rotated_masks.append(rotate_expand_image(mask_list[j], -rotate_angle))
+                rotated_masks.append(rotate_expand_image(mask_list[j], rotate_angle))
 
             # 3. Re-create annotations from the masks
             bounding_boxes = masks_to_annot(rotated_masks,cls_list)
