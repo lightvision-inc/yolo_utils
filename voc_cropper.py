@@ -47,6 +47,11 @@ def save_crops(current_path, img_name, img_ext_str, annotations):
         crop_path = current_path + 'cropped/' + img_name + '_{}'.format(i) + img_ext_str
         cropped_image = image.crop((annotation['xmin'], annotation['ymin'], 
                                     annotation['xmax'], annotation['ymax']))
+        width, height = image.size
+        max_dim = max(width, height)
+        multiple = 416//max_dim
+        if multiple>1:
+            cropped_image = cropped_image.resize(width*(multiple+1),height*(multiple+1))
         cropped_image.save(crop_path)
 
 def main(args):
