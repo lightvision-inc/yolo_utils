@@ -91,8 +91,8 @@ def main(args):
                     annotation = extract_annotation_json(args.obj_name, json_path)
                 
                 for i in range(len(annotation)):
-                    if ((annotation[i]['ymax'] - annotation[i]['ymin']>1)
-                        and (annotation[i]['xmax'] - annotation[i]['xmin'])>1):
+                    if ((annotation[i]['ymax'] - annotation[i]['ymin']>30)
+                        and (annotation[i]['xmax'] - annotation[i]['xmin'])>30):
                         save_annot.append(annotation[i])
                 save_crops(path, img_name, img_ext_str, save_annot)
         break
