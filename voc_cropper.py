@@ -39,12 +39,12 @@ def crop_image(image_path, xmin, ymin, xmax, ymax):
     return cropped_image
 
 def save_crops(current_path, img_name, img_ext_str, annotations):
-    os.makedirs(current_path + 'cropped/', exist_ok=True)
+    os.makedirs(current_path + '/cropped/', exist_ok=True)
     image_path = current_path+img_name+img_ext_str
     image = Image.open(image_path)
     for i in range(len(annotations)):
         annotation = annotations[i]
-        crop_path = current_path + 'cropped/' + img_name + '_{}'.format(i) + img_ext_str
+        crop_path = current_path + '/cropped/' + img_name + '_{}'.format(i) + img_ext_str
         cropped_image = image.crop((annotation['xmin'], annotation['ymin'], 
                                     annotation['xmax'], annotation['ymax']))
         width, height = image.size
@@ -55,14 +55,14 @@ def save_crops(current_path, img_name, img_ext_str, annotations):
         cropped_image.save(crop_path)
 
 def main(args):
-    path = args.root_dir + '/JPEGImages/'
+    path = args.root_dir + args.imgs_subdir
     for _, _, f in os.walk(path):
         for file in f:
             img_ext_str = '.{}'.format(args.img_ext)
             if img_ext_str in file:
                 img_name = file[:-4]
                 xml_file = file.replace(img_ext_str, '.xml')
-                xml_path = args.root_dir + '/Annotations/' + xml_file
+                xml_path = args.root_dir + args.annots_subdir + xml_file
                 annotation = extract_annotation(args.obj_name, xml_path)
                 save_annot = []
                 for i in range(len(annotation)):
@@ -74,7 +74,7 @@ def main(args):
 
     if args.dupe_scan:
         print("Cropping done, looking for near-identical images and deleting them ...")
-        cropped_path = args.root_dir + '/JPEGImages/' + 'cropped/'
+        cropped_path = args.root_dir + args.imgs_subdir + '/cropped/'
         hashes = {}
         for _, _, files in os.walk(cropped_path):
             for file in files:
@@ -95,6 +95,10 @@ def parse_arguments(argv):
 
     parser.add_argument('--root_dir', type=str,
                         help='root of VOC development kit', default='E:/VOCdevkit')
+    parser.add_argument('--imgs_subdir', type=str,
+                        help='subdirectory for images', default='/JPEGImages/')
+    parser.add_argument('--annots_subdir', type=str,
+                        help='subdirectory for xml annotations', default='/Annotations/')
     parser.add_argument('--obj_name', type=str,
                         help='name of object to be cropped', default = 'license_plate')
     parser.add_argument('--img_ext', type=str,
