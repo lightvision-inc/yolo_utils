@@ -3,18 +3,16 @@
 
 import os
 import sys
+import json
 import argparse
 import xml.etree.ElementTree as ET
 from PIL import Image
 import imagehash
 
 def extract_annotation(obj_name, xml_path):    
-
     tree = ET.parse(xml_path)
     root = tree.getroot()
-
     annotations = []
-
     for obj in root.findall('object'):
         name = obj.find('name').text
         if name == obj_name:
@@ -22,7 +20,6 @@ def extract_annotation(obj_name, xml_path):
             ymin = int(obj.find('bndbox/ymin').text)
             xmax = int(obj.find('bndbox/xmax').text)
             ymax = int(obj.find('bndbox/ymax').text)
-
             annotations.append({
                 'xmin': xmin,
                 'ymin': ymin,
@@ -30,6 +27,28 @@ def extract_annotation(obj_name, xml_path):
                 'ymax': ymax
             })
 
+    return annotations
+
+def extract_annotation_json(obj_name, json_path):
+    # Load the JSON file
+    with open(json_path, 'r') as file:
+        json_data = json.load(file)
+    
+    annotations = []
+    
+    for item in json_data['mark']:
+        if item['name'] == obj_name:
+            xmin = item['rect']['int_x']
+            ymin = item['rect']['int_y']
+            xmax = xmin + item['rect']['int_w']
+            ymax = ymin + item['rect']['int_h']
+    
+            annotations.append({
+                'xmin': xmin,
+                'ymin': ymin,
+                'xmax': xmax,
+                'ymax': ymax
+            })
     return annotations
 
 def crop_image(image_path, xmin, ymin, xmax, ymax):
@@ -61,13 +80,19 @@ def main(args):
             img_ext_str = '.{}'.format(args.img_ext)
             if img_ext_str in file:
                 img_name = file[:-4]
-                xml_file = file.replace(img_ext_str, '.xml')
-                xml_path = args.root_dir + args.annots_subdir + xml_file
-                annotation = extract_annotation(args.obj_name, xml_path)
                 save_annot = []
+                if (args.annot_style == 'darknet'):
+                    xml_file = file.replace(img_ext_str, '.xml')
+                    xml_path = args.root_dir + args.annots_subdir + xml_file
+                    annotation = extract_annotation(args.obj_name, xml_path)
+                elif (args.annot_style == 'darkmark'):
+                    json_file = file.replace(img_ext_str, '.json')
+                    json_path = args.root_dir + args.annots_subdir + json_file
+                    annotation = extract_annotation_json(args.obj_name, json_path)
+                
                 for i in range(len(annotation)):
-                    if ((annotation[i]['ymax'] - annotation[i]['ymin']>30)
-                        and (annotation[i]['xmax'] - annotation[i]['xmin'])>30):
+                    if ((annotation[i]['ymax'] - annotation[i]['ymin']>1)
+                        and (annotation[i]['xmax'] - annotation[i]['xmin'])>1):
                         save_annot.append(annotation[i])
                 save_crops(path, img_name, img_ext_str, save_annot)
         break
@@ -103,6 +128,8 @@ def parse_arguments(argv):
                         help='name of object to be cropped', default = 'license_plate')
     parser.add_argument('--img_ext', type=str,
                         help='extension of image files', default = 'jpg')
+    parser.add_argument('--annot_style', type=str,
+                        help='annotation file style', default = 'darknet')
     parser.add_argument('--dupe_scan', type=bool,
                         help='looks for duplicated crops and deletes them', default = False)
 
