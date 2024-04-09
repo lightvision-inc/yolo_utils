@@ -1,6 +1,7 @@
 import os
 import cv2
 import glob
+import json
 import xml.etree.ElementTree as ET
 
 
@@ -66,6 +67,9 @@ def privacy_protection(path, img_filename, classes):
 
     filename = img_filename[:img_filename.rfind('.')]
 
+    if not os.path.exists(f'{path}/Annotations/{filename}.xml'):
+        return
+
     img = cv2.imread(f'{path}/JPEGImages/{img_filename}')
     annot_file = open(f'{path}/Annotations/{filename}.xml')
     tree = ET.parse(annot_file)
@@ -84,5 +88,31 @@ def privacy_protection(path, img_filename, classes):
         pt2 = (int(xmlbox.find('xmax').text), int(xmlbox.find('ymax').text))
 
         img = cv2.rectangle(img, pt1, pt2, (0, 0, 0), -1)
+
+    cv2.imwrite(f'{path}/PrivacyProtected/{img_filename}', img)
+
+
+def privacy_protection_darkmark(path, img_filename, classes):
+
+    if not os.path.exists(f'{path}/PrivacyProtected'):
+        os.makedirs(f'{path}/PrivacyProtected')
+
+    filename = img_filename[:img_filename.rfind('.')]
+
+    if not os.path.exists(f'{path}/JPEGImages/{filename}.json'):
+        return
+
+    img = cv2.imread(f'{path}/JPEGImages/{img_filename}')
+    with open(f'{path}/JPEGImages/{filename}.json', 'r', encoding='utf-8') as file:
+        annot = json.load(file)
+        for m in annot['mark']:
+            if m['name'] not in classes:
+                continue
+
+            rect = m['rect']
+            pt1 = (rect['int_x'], rect['int_y'])
+            pt2 = (rect['int_x'] + rect['int_w'],
+                   rect['int_y'] + rect['int_h'])
+            img = cv2.rectangle(img, pt1, pt2, (0, 0, 0), -1)
 
     cv2.imwrite(f'{path}/PrivacyProtected/{img_filename}', img)

@@ -1,6 +1,7 @@
 anchors
 build
 dist
+venv
 *.vscode
 *.pyc
 *.spec
