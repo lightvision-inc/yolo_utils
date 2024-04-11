@@ -3,18 +3,16 @@
 
 import os
 import sys
+import json
 import argparse
 import xml.etree.ElementTree as ET
 from PIL import Image
 import imagehash
 
 def extract_annotation(obj_name, xml_path):    
-
     tree = ET.parse(xml_path)
     root = tree.getroot()
-
     annotations = []
-
     for obj in root.findall('object'):
         name = obj.find('name').text
         if name == obj_name:
@@ -22,7 +20,6 @@ def extract_annotation(obj_name, xml_path):
             ymin = int(obj.find('bndbox/ymin').text)
             xmax = int(obj.find('bndbox/xmax').text)
             ymax = int(obj.find('bndbox/ymax').text)
-
             annotations.append({
                 'xmin': xmin,
                 'ymin': ymin,
@@ -32,6 +29,28 @@ def extract_annotation(obj_name, xml_path):
 
     return annotations
 
+def extract_annotation_json(obj_name, json_path):
+    # Load the JSON file
+    with open(json_path, 'r') as file:
+        json_data = json.load(file)
+    
+    annotations = []
+    
+    for item in json_data['mark']:
+        if item['name'] == obj_name:
+            xmin = item['rect']['int_x']
+            ymin = item['rect']['int_y']
+            xmax = xmin + item['rect']['int_w']
+            ymax = ymin + item['rect']['int_h']
+    
+            annotations.append({
+                'xmin': xmin,
+                'ymin': ymin,
+                'xmax': xmax,
+                'ymax': ymax
+            })
+    return annotations
+
 def crop_image(image_path, xmin, ymin, xmax, ymax):
 
     image = Image.open(image_path)
@@ -39,27 +58,38 @@ def crop_image(image_path, xmin, ymin, xmax, ymax):
     return cropped_image
 
 def save_crops(current_path, img_name, img_ext_str, annotations):
-    os.makedirs(current_path + 'cropped/', exist_ok=True)
+    os.makedirs(current_path + '/cropped/', exist_ok=True)
     image_path = current_path+img_name+img_ext_str
     image = Image.open(image_path)
     for i in range(len(annotations)):
         annotation = annotations[i]
-        crop_path = current_path + 'cropped/' + img_name + '_{}'.format(i) + img_ext_str
+        crop_path = current_path + '/cropped/' + img_name + '_{}'.format(i) + img_ext_str
         cropped_image = image.crop((annotation['xmin'], annotation['ymin'], 
                                     annotation['xmax'], annotation['ymax']))
+        width, height = image.size
+        max_dim = max(width, height)
+        multiple = 416//max_dim
+        if multiple>1:
+            cropped_image = cropped_image.resize(width*(multiple+1),height*(multiple+1))
         cropped_image.save(crop_path)
 
 def main(args):
-    path = args.root_dir + '/JPEGImages/'
+    path = args.root_dir + args.imgs_subdir
     for _, _, f in os.walk(path):
         for file in f:
             img_ext_str = '.{}'.format(args.img_ext)
             if img_ext_str in file:
                 img_name = file[:-4]
-                xml_file = file.replace(img_ext_str, '.xml')
-                xml_path = args.root_dir + '/Annotations/' + xml_file
-                annotation = extract_annotation(args.obj_name, xml_path)
                 save_annot = []
+                if (args.annot_style == 'darknet'):
+                    xml_file = file.replace(img_ext_str, '.xml')
+                    xml_path = args.root_dir + args.annots_subdir + xml_file
+                    annotation = extract_annotation(args.obj_name, xml_path)
+                elif (args.annot_style == 'darkmark'):
+                    json_file = file.replace(img_ext_str, '.json')
+                    json_path = args.root_dir + args.annots_subdir + json_file
+                    annotation = extract_annotation_json(args.obj_name, json_path)
+                
                 for i in range(len(annotation)):
                     if ((annotation[i]['ymax'] - annotation[i]['ymin']>30)
                         and (annotation[i]['xmax'] - annotation[i]['xmin'])>30):
@@ -69,7 +99,7 @@ def main(args):
 
     if args.dupe_scan:
         print("Cropping done, looking for near-identical images and deleting them ...")
-        cropped_path = args.root_dir + '/JPEGImages/' + 'cropped/'
+        cropped_path = args.root_dir + args.imgs_subdir + '/cropped/'
         hashes = {}
         for _, _, files in os.walk(cropped_path):
             for file in files:
@@ -90,10 +120,16 @@ def parse_arguments(argv):
 
     parser.add_argument('--root_dir', type=str,
                         help='root of VOC development kit', default='E:/VOCdevkit')
+    parser.add_argument('--imgs_subdir', type=str,
+                        help='subdirectory for images', default='/JPEGImages/')
+    parser.add_argument('--annots_subdir', type=str,
+                        help='subdirectory for xml annotations', default='/Annotations/')
     parser.add_argument('--obj_name', type=str,
                         help='name of object to be cropped', default = 'license_plate')
     parser.add_argument('--img_ext', type=str,
                         help='extension of image files', default = 'jpg')
+    parser.add_argument('--annot_style', type=str,
+                        help='annotation file style', default = 'darknet')
     parser.add_argument('--dupe_scan', type=bool,
                         help='looks for duplicated crops and deletes them', default = False)
 
