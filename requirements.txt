@@ -4,3 +4,4 @@ opencv-python
 pyinstaller
 pandas
 tqdm
+pillow
