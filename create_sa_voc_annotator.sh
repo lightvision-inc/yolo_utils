@@ -1,1 +1,1 @@
-pyinstaller --onefile --hidden-import=pkg_resources.py2_warn voc_annotator.py
+pyinstaller --onefile --noconsole --collect-all cv2 voc_annotator.py
