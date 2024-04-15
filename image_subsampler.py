@@ -90,6 +90,7 @@ class MainWindow:
 
         self.listbox = tk.Listbox(frame, selectmode='browse')
         self.listbox.pack(side='left', fill='both', expand=True)
+        self.listbox.bind('<<ListboxSelect>>', self._listbox_select)
 
         self.scrollbar = tk.Scrollbar(frame)
         self.scrollbar.pack(side='right', fill='both')
@@ -160,6 +161,12 @@ class MainWindow:
 
         with open(self.info_path, 'w', encoding='utf8') as f:
             f.write(json.dumps(self.info))
+
+    def _listbox_select(self, event):
+        widget = event.widget
+        file_idx = int(widget.curselection()[0])
+        self.info['file_idx'] = file_idx
+        self._load_image()
 
     def _load_image(self):
         stream = open(self.file_list[self.info['file_idx']], 'rb')
