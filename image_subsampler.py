@@ -229,7 +229,7 @@ class MainWindow:
         shutil.copy(os.path.join(parent, name),
                     os.path.join(self.save_path, name))
         messagebox.showinfo('Successfully saved', name)
-        return
+        self.tk.focus_force()
 
     def _save_info_and_exit(self):
         self._save_info()
