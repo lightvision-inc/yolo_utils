@@ -1,342 +1,433 @@
 import os
 import sys
-import glob
+import json
 import argparse
-import keyboard
+import tkinter as tk
 
 import cv2
 import numpy as np
-import tkinter as tk
-import tkinter.simpledialog
+import keyboard
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
+
+from tkinter import messagebox, filedialog, simpledialog
+from PIL import Image, ImageTk
+from pathlib import Path
+
 import draw_utils as utils
 
-from multiprocessing import Lock
 
+class MainWindow:
+    def __init__(self, args):
+        self.args = args
 
-def minmax(pt):
-    global img
+        self.tk = tk.Tk()
+        self.tk.title('VOC annotator')
 
-    x = np.min([np.max([0, pt[0]]), img.shape[1] - 1])
-    y = np.min([np.max([0, pt[1]]), img.shape[0] - 1])
+        x_factor, y_factor = self.args.aspect_ratio.split(':')
+        x_factor = int(x_factor)
+        y_factor = int(y_factor)
 
-    return (x, y)
+        # get a screen height
+        screen_height = self.tk.winfo_screenheight()
+        self.frame_height = int(screen_height * 0.9)
+        self.frame_width = int(self.frame_height * x_factor / y_factor)
 
+        # initialize empty image
+        img = np.zeros((self.frame_height, self.frame_width, 3), np.uint8)
+        img = Image.fromarray(img)
+        self.disp_tk = ImageTk.PhotoImage(image=img)
+        self.disp = tk.Label(self.tk, image=self.disp_tk)
+        self.disp.pack(side='left')
+        self.disp.config(cursor='none')
 
-def annotation(event, x, y, flags, param):
-    global ref_pt, prev_pt, curr_pt, tl, br, name, mutex
+        frame = tk.Frame(self.tk)
+        frame.pack(side='right', fill='both', expand=True)
 
-    curr_pt = (x, y)
-    curr_pt = minmax(curr_pt)
+        self.open_folder = tk.Button(
+            frame, text='Open Folder', overrelief='solid', command=self._open_folder)
+        self.open_folder.pack(side='top', fill='x')
 
-    # ctrl + left click: remove a specific box
-    if keyboard.is_pressed('ctrl'):
-        if event == cv2.EVENT_LBUTTONDOWN:
-            mutex.acquire()
-            for i in range(len(name)):
-                if tl[i][0] < x and x < br[i][0] and tl[i][1] < y and y < br[i][1]:
-                    del tl[i], br[i], name[i]
+        self.set_default_name = tk.Button(
+            frame, text='Set default name', overrelief='solid', command=self._set_default_name)
+        self.set_default_name.pack(side='top', fill='x')
+
+        self.label_folder = tk.Label(frame)
+        self.label_folder.pack(side='top', fill='x')
+
+        self.label_file_idx = tk.Label(frame)
+        self.label_file_idx.pack(side='top', fill='x')
+
+        self.label_default_name = tk.Label(frame)
+        self.label_default_name.pack(side='top', fill='x')
+
+        self.listbox = tk.Listbox(frame, selectmode='browse')
+        self.listbox.pack(side='left', fill='both', expand=True)
+        self.listbox.bind('<<ListboxSelect>>', self._listbox_select)
+
+        self.scrollbar = tk.Scrollbar(frame)
+        self.scrollbar.pack(side='right', fill='both')
+
+        self.listbox.config(yscrollcommand=self.scrollbar.set)
+        self.scrollbar.config(command=self.listbox.yview)
+
+        # self.is_full_screen = False
+        self.tk.bind('f', self._forward)
+        self.tk.bind('F', self._forward)
+        self.tk.bind('d', self._backward)
+        self.tk.bind('g', self._navigate)
+        self.tk.bind('a', self._toggle_label)
+        self.tk.bind('c', self._clear_annot)
+        self.tk.protocol('WM_DELETE_WINDOW', self._save_info_and_exit)
+        self.disp.bind('<Motion>', self._mouse_move_handler)
+        self.disp.bind('<ButtonPress-1>', self._mouse_lbutton_press_handler)
+        self.disp.bind('<ButtonPress-3>', self._mouse_rbutton_press_handler)
+        self.disp.bind('<ButtonRelease-1>', self._mouse_button_release_handler)
+
+        self.root = None
+        self.info_path = None
+        self.img_folder = None
+        self.annot_folder = None
+        self.info = {
+            'file_idx': 0,
+            'default_name': '',
+            'draw_label': True
+        }
+        self.file_list = []
+        self.info['file_idx'] = 0
+
+        self.img_width = None
+        self.img_height = None
+        self.img = None
+        self.xml = None
+        self.xml_path = None
+        self.prev_pos = None
+        self.cur_pos = None
+        self.ref_pos = None
+        self.tl = []
+        self.br = []
+        self.names = []
+
+    def _minmax(self, pos):
+        x = min(max(0, pos[0]), self.img_width - 1)
+        y = min(max(0, pos[1]), self.img_height - 1)
+        return (x, y)
+
+    def _mouse_move_handler(self, e):
+        self.cur_pos = (e.x, e.y)
+
+        # space: relocate top-left corner of the box
+        if keyboard.is_pressed(' ') and self.ref_pos is not None:
+            reloc_pos = np.add(self.ref_pos, np.subtract(
+                self.cur_pos, self.prev_pos))
+            self.ref_pos = tuple(self._minmax(reloc_pos))
+
+        self.prev_pos = self.cur_pos
+        self._display_image()
+
+    def _mouse_lbutton_press_handler(self, e):
+        if keyboard.is_pressed('ctrl'):
+            for i in range(len(self.names)):
+                if self.tl[i][0] < e.x and e.x < self.br[i][0] and self.tl[i][1] < e.y and e.y < self.br[i][1]:
+                    del self.tl[i], self.br[i], self.names[i]
                     break
-            mutex.release()
-        return
-
-    if event == cv2.EVENT_LBUTTONDOWN:
-        ref_pt = (x, y)
-
-    if event == cv2.EVENT_LBUTTONUP and ref_pt is not None:
-        tl.append(ref_pt)
-        br.append(curr_pt)
-        if args.default_name is None:
-            answer = tk.simpledialog.askstring(
-                title='Q', prompt='Enter object name')
         else:
-            answer = args.default_name
+            self.ref_pos = (e.x, e.y)
 
-        if answer is not None:
-            name.append(answer)
+    def _mouse_rbutton_press_handler(self, e):
+        try:
+            self.tl.pop()
+            self.br.pop()
+            self.names.pop()
+            self._display_image()
+        except IndexError:
+            pass
+
+    def _mouse_button_release_handler(self, e):
+        if keyboard.is_pressed('ctrl'):
+            self.ref_pos = None
+            self._display_image()
+            return
+
+        if len(self.info['default_name']) == 0:
+            name = simpledialog.askstring('Q', 'Enter object name')
+
+            if name is None:
+                self.ref_pos = None
+                self._display_image()
+                return
+
+            self.names.append(name)
         else:
-            tl.pop()
-            br.pop()
+            self.names.append(self.info['default_name'])
 
-        ref_pt = None
+        min_x = min(self.ref_pos[0], e.x)
+        max_x = max(self.ref_pos[0], e.x)
+        min_y = min(self.ref_pos[1], e.y)
+        max_y = max(self.ref_pos[1], e.y)
 
-    if event == cv2.EVENT_RBUTTONDOWN and 0 < len(name):
-        tl.pop()
-        br.pop()
-        name.pop()
+        self.tl.append((min_x, min_y))
+        self.br.append((max_x, max_y))
 
-    # space: relocate top-left corner of the box
-    if keyboard.is_pressed(' ') and ref_pt is not None:
-        reloc_pt = np.add(ref_pt, np.subtract(curr_pt, prev_pt))
-        ref_pt = tuple(minmax(reloc_pt))
+        self.ref_pos = None
+        self._display_image()
 
-    prev_pt = curr_pt
+    def _open_folder(self):
+        self.root = filedialog.askdirectory(
+            title='Select a directory containing videos and corresponding images')
+        if len(self.root) == 0:
+            return
 
+        self.label_folder.config(text=self.root)
+        self.info_path = os.path.join(self.root, self.args.info_file)
+        if os.path.exists(self.info_path):
+            self._load_info()
 
-def construct_xml(filename, img):
+        self.img_folder = os.path.join(self.root, 'JPEGImages')
+        if not os.path.exists(self.img_folder):
+            messagebox.showerror('Error', 'JPEGImages folder cannot be found')
 
-    data = ET.Element('annotation')
-    # ET.SubElement(data, 'filename').text = filename
+        self.annot_folder = os.path.join(self.root, 'Annotations')
+        if not os.path.exists(self.annot_folder):
+            os.makedirs(self.annot_folder)
 
-    sz = ET.SubElement(data, 'size')
-    ET.SubElement(sz, 'width').text = str(img.shape[1])
-    ET.SubElement(sz, 'height').text = str(img.shape[0])
-    ET.SubElement(sz, 'depth').text = str(img.shape[2])
+        for e in os.listdir(self.img_folder):
+            p = os.path.join(self.img_folder, e)
+            if os.path.isdir(p):
+                continue
 
-    ET.SubElement(data, 'segmented').text = "0"
+            if e.endswith('.jpg') or e.endswith('.jpeg') or e.endswith('.png'):
+                self.file_list.append(p)
+                self.listbox.insert(tk.END, e)
 
-    return data
+        self._load_paired_data()
 
+    def _update_default_name_label(self):
+        self.label_default_name.config(
+            text='Default name: ' + self.info['default_name'])
 
-def copy_xml(xml):
+    def _set_default_name(self):
+        if self.annot_folder is None:
+            messagebox.showerror(
+                'Error', 'Please set a default name after opening the folder')
+            return
 
-    new_xml = xml
-    del_list = [e for e in new_xml.iter('object')]
-    for e in del_list:
-        new_xml.remove(e)
+        default_name = simpledialog.askstring(
+            'Q', 'Enter a default name of objects')
 
-    return new_xml
+        if default_name is not None:
+            self.info['default_name'] = default_name
+            self._update_default_name_label()
+            self._save_info()
 
+    def _load_info(self):
+        if self.info_path is None:
+            return
 
-def get_xml_path(img_path):
+        with open(self.info_path, 'r', encoding='utf8') as f:
+            self.info = json.load(f)
 
-    basename = os.path.basename(img_path)
-    filename = os.path.splitext(basename)[0]
+        self._update_default_name_label()
 
-    xml_path = img_path.split(os.sep)
-    xml_path = xml_path[0] + os.sep + \
-        os.path.join(*xml_path[1:-2], 'Annotations', filename + '.xml')
+    def _save_info(self):
+        if self.info_path is None or len(self.file_list) == 0:
+            return
 
-    return xml_path
+        with open(self.info_path, 'w', encoding='utf8') as f:
+            f.write(json.dumps(self.info, indent=4))
 
+    def _listbox_select(self, event):
+        widget = event.widget
+        file_idx = int(widget.curselection()[0])
+        self.info['file_idx'] = file_idx
+        self._load_paired_data()
 
-def get_paired_data(img_path, xml_path):
+    def _construct_xml(self, img):
+        data = ET.Element('annotation')
 
-    stream = open(img_path, 'rb')
-    bytes = bytearray(stream.read())
-    np_arr = np.asarray(bytes, dtype=np.uint8)
-    img = cv2.imdecode(np_arr, cv2.IMREAD_UNCHANGED)
+        sz = ET.SubElement(data, 'size')
+        ET.SubElement(sz, 'width').text = str(img.shape[1])
+        ET.SubElement(sz, 'height').text = str(img.shape[0])
+        ET.SubElement(sz, 'depth').text = str(img.shape[2])
 
-    xml = None
-    if os.path.isfile(xml_path):
-        xml = ET.parse(xml_path).getroot()
-    else:
-        xml = construct_xml(img_path, img)
+        ET.SubElement(data, 'segmented').text = '0'
 
-    return img, xml
+        return data
 
+    def _xml2array(self, xml):
+        tl = []
+        br = []
+        names = []
 
-def xml2array(xml):
-    global tl, br, name
+        for e in xml.iter('object'):
+            names.append(e.find('name').text)
+            bb = e.find('bndbox')
 
-    tl = []
-    br = []
-    name = []
+            xmin = int(bb[0].text)
+            ymin = int(bb[1].text)
+            xmax = int(bb[2].text)
+            ymax = int(bb[3].text)
 
-    for e in xml.iter('object'):
-        name.append(e.find('name').text)
-        bb = e.find('bndbox')
+            tl.append((xmin, ymin))
+            br.append((xmax, ymax))
 
-        xmin = int(bb[0].text)
-        ymin = int(bb[1].text)
-        xmax = int(bb[2].text)
-        ymax = int(bb[3].text)
+        return tl, br, names
 
-        tl.append((xmin, ymin))
-        br.append((xmax, ymax))
+    def _clear_xml(self, xml):
+        del_list = [e for e in xml.iter('object')]
+        for e in del_list:
+            xml.remove(e)
 
-def xmlclass2array(xml, default_name):
-    global tl, br, name
+        return xml
 
-    new_tl = []
-    new_br = []
-    new_name = []
+    def _array2xml(self, arr, xml):
+        xml = self._clear_xml(xml)
 
-    for i in range(len(tl)):
-        if name[i]==default_name:
-            new_tl.append(tl[i])
-            new_br.append(br[i])
-            new_name.append(name[i])
+        for tl, br, name in arr:
+            obj = ET.SubElement(xml, 'object')
+            ET.SubElement(obj, 'name').text = name
+            ET.SubElement(obj, 'pose').text = 'Unspecified'
+            ET.SubElement(obj, 'truncated').text = '0'
+            ET.SubElement(obj, 'difficult').text = '0'
 
-    for e in xml.iter('object'):
-        current_name = e.find('name').text
-        if current_name != default_name:
-            new_name.append(e.find('name').text)
-            new_bb = e.find('bndbox')
+            bb = ET.SubElement(obj, 'bndbox')
+            ET.SubElement(bb, 'xmin').text = str(tl[0])
+            ET.SubElement(bb, 'ymin').text = str(tl[1])
+            ET.SubElement(bb, 'xmax').text = str(br[0])
+            ET.SubElement(bb, 'ymax').text = str(br[1])
 
-            xmin = int(new_bb[0].text)
-            ymin = int(new_bb[1].text)
-            xmax = int(new_bb[2].text)
-            ymax = int(new_bb[3].text)
+        return xml
 
-            new_tl.append((xmin, ymin))
-            new_br.append((xmax, ymax))
+    def _load_paired_data(self, keep_annot=False):
+        img_path = Path(self.file_list[self.info['file_idx']])
+        self.xml_path = str(img_path.with_suffix('.xml')).replace(
+            'JPEGImages', 'Annotations')
 
-    tl = new_tl
-    br = new_br
-    name = new_name
+        # load image first
+        stream = open(img_path, 'rb')
+        buf = bytearray(stream.read())
+        arr = np.asarray(buf, dtype=np.uint8)
+        self.img = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
+        self.img = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
 
-def array2xml(xml):
-    global tl, br, name
-
-    for i in range(len(tl)):
-        obj = ET.SubElement(xml, 'object')
-        ET.SubElement(obj, 'name').text = name[i]
-        ET.SubElement(obj, 'pose').text = 'Unspecified'
-        ET.SubElement(obj, 'truncated').text = '0'
-        ET.SubElement(obj, 'difficult').text = '0'
-
-        bb = ET.SubElement(obj, 'bndbox')
-        ET.SubElement(bb, 'xmin').text = str(tl[i][0])
-        ET.SubElement(bb, 'ymin').text = str(tl[i][1])
-        ET.SubElement(bb, 'xmax').text = str(br[i][0])
-        ET.SubElement(bb, 'ymax').text = str(br[i][1])
-
-
-parser = argparse.ArgumentParser()
-
-parser.add_argument('--root_dir', type=str,
-                    help='root directory of the dataset; directory structure must be same as VOC 2007/2012', default='E:/VOCdevkit/VOC2007')
-parser.add_argument('--img_ext', type=str,
-                    help='extension of image files', default='jpg')
-parser.add_argument('--default_name', type=str,
-                    help='default name of annotated objects')
-parser.add_argument('--lpr_mode', type=bool,
-                    help='change ui for lpr mode', default = False)
-
-args = parser.parse_args(sys.argv[1:])
-
-# parsing image files
-img_list = glob.glob('{}/JPEGImages/*.{}'.format(args.root_dir, args.img_ext))
-if len(img_list) == 0:
-    print('no {} image files'.format(args.img_ext))
-    exit()
-
-img_list.sort()
-
-# making a directory for annotation
-annot_path = '{}/Annotations'.format(args.root_dir)
-if not os.path.exists(annot_path):
-    os.mkdir(annot_path)
-
-# initialize tkinter
-tk.Tk().withdraw()
-
-idx = 0
-ref_pt = None
-prev_pt = None
-curr_pt = None
-tl = []
-br = []
-name = []
-save_tr = None
-save_br = None
-save_name = None
-mutex = Lock()
-
-cross_hair = True
-draw_annot = 2
-
-img_path = os.path.normpath(img_list[idx])
-xml_path = get_xml_path(img_path)
-
-img, xml = get_paired_data(img_list[idx], xml_path)
-xml2array(xml)
-
-cv2.namedWindow('annotator', cv2.WINDOW_NORMAL)
-cv2.setMouseCallback('annotator', annotation)
-
-while True:
-    clone = img.copy()
-    if not args.lpr_mode:
-        utils.draw_nav_string(clone, img_list, idx)
-
-    if cross_hair and curr_pt is not None:
-        utils.draw_crosshair(clone, curr_pt)
-
-    if ref_pt is not None:
-        cv2.rectangle(clone, ref_pt, curr_pt, utils.G, 1)
-
-    mutex.acquire()
-    if (draw_annot==2):
-        for i in range(len(name)):
-            utils.draw_annot(clone, name[i], tl[i], br[i])
-    elif (draw_annot==1):
-        for i in range(len(name)):
-            utils.draw_annot_2(clone, name[i], tl[i], br[i])
-    mutex.release()
-
-    cv2.imshow('annotator', clone)
-
-    key = cv2.waitKey(1) & 0xFF
-
-    if key == ord('h'):
-        cross_hair = not cross_hair
-
-    if key == ord('a'):
-        if draw_annot==2:
-            draw_annot=1
-        elif draw_annot==1:
-            draw_annot=0
+        if keep_annot:
+            self.xml = self._construct_xml(self.img)
         else:
-            draw_annot=2
+            # load xml file
+            if os.path.isfile(self.xml_path):
+                self.xml = ET.parse(self.xml_path).getroot()
+            else:
+                self.xml = self._construct_xml(self.img)
 
-    if key == ord('c'):
-        msg_box = tk.messagebox.askquestion(
+            # convert xml to three arrays
+            self.tl, self.br, self.names = self._xml2array(self.xml)
+
+        # store width and height of original image
+        self.img_width = self.img.shape[1]
+        self.img_height = self.img.shape[0]
+
+        # resize image to display properly
+        self.img = cv2.resize(self.img, (self.frame_width, self.frame_height))
+
+        self._display_image()
+        self._update_file_idx()
+
+    def _display_image(self):
+        if self.img is None:
+            return
+
+        disp = self.img.copy()
+        if self.cur_pos is not None:
+            utils.draw_crosshair(disp, self.cur_pos)
+
+        for i in range(len(self.names)):
+            utils.draw_annot(
+                disp, self.names[i], self.tl[i], self.br[i], draw_label=self.info['draw_label'])
+
+        if self.ref_pos is not None:
+            cv2.rectangle(disp, self.ref_pos, self.cur_pos, utils.G, 1)
+
+        img = Image.fromarray(disp)
+        self.disp_tk = ImageTk.PhotoImage(image=img)
+
+        self.disp.config(image=self.disp_tk)
+        self.disp.image = self.disp_tk
+
+    def _update_file_idx(self):
+        self.label_file_idx.config(
+            text=f'{self.info["file_idx"] + 1} / {len(self.file_list)}')
+        self.listbox.selection_clear(0, tk.END)
+        self.listbox.selection_set(self.info['file_idx'])
+        self.listbox.see(self.info['file_idx'])
+
+    def _forward(self, event=None):
+        self._export_annot_to_file()
+        self.info['file_idx'] = \
+            (self.info['file_idx'] + 1) % len(self.file_list)
+        self._load_paired_data(keep_annot=keyboard.is_pressed('shift'))
+
+    def _backward(self, event=None):
+        self._export_annot_to_file()
+        self.info['file_idx'] = self.info['file_idx'] - 1 \
+            if self.info['file_idx'] > 0 else len(self.file_list) - 1
+        self._load_paired_data()
+
+    def _navigate(self, event=None):
+        new_file_idx = simpledialog.askinteger(
+            'Q', 'Enter the file index you want to navigate')
+        if new_file_idx is None:
+            return
+
+        new_file_idx = int(new_file_idx)
+        if 0 < new_file_idx < len(self.file_list):
+            self._export_annot_to_file()
+            self.info['file_idx'] = new_file_idx - 1
+            self._load_paired_data()
+        else:
+            messagebox.showerror('Error', 'File index out of range')
+
+    def _toggle_label(self, event=None):
+        self.info['draw_label'] = not self.info['draw_label']
+        self._display_image()
+
+    def _clear_annot(self, event=None):
+        msg_box = messagebox.askquestion(
             'Clear', 'Do you wish you clear annotation data?', icon='warning')
         if msg_box == 'yes':
-            tl = []
-            br = []
-            name = []
+            self.tl = []
+            self.br = []
+            self.names = []
 
-    if key == ord('y'):
-        x = curr_pt[0]
-        y = curr_pt[1]
-        for i in range(len(name)):
-            if tl[i][0] < x and x < br[i][0] and tl[i][1] < y and y < br[i][1]:
-                save_tl = tl[i]
-                save_br = br[i]
-                save_name = name[i]
-                break
+    def _export_annot_to_file(self, event=None):
+        if self.img_folder is None:
+            return
 
-    if key == ord('v') and save_name is not None:
-        tl.append(save_tl)
-        br.append(save_br)
-        name.append(save_name)
+        self.xml = self._array2xml(zip(self.tl, self.br, self.names), self.xml)
 
-    if key == ord('g') or key == ord('F') or key == ord('f') or key == ord('d') or key == ord('q'):
-        # save current data
-        new_xml = copy_xml(xml)
-        array2xml(new_xml)
-
-        with open(xml_path, 'w+') as f:
-            xml_str = ET.tostring(new_xml)
+        with open(self.xml_path, 'w+', encoding='utf-8') as f:
+            xml_str = ET.tostring(self.xml)
             xml_str = minidom.parseString(xml_str).toprettyxml()
             f.write(xml_str)
 
-        # move to the next state
-        if key == ord('g'):
-            answer = tk.simpledialog.askinteger(
-                title='Q', prompt='Enter frame index to move')
-            if answer is None:
-                continue
-            idx = np.min([answer - 1, len(img_list) - 1])
-            idx = np.max([idx, 0])
-        elif key == ord('F') or key == ord('f'):
-            idx = np.min([idx + 1, len(img_list) - 1])
-        elif key == ord('d'):
-            idx = np.max([idx - 1, 0])
-        else:
-            break
+    def _save_info_and_exit(self):
+        self._save_info()
+        self._export_annot_to_file()
+        self.tk.destroy()
 
-        img_path = os.path.normpath(img_list[idx])
-        xml_path = get_xml_path(img_path)
 
-        img, xml = get_paired_data(img_list[idx], xml_path)
-        if key != ord('F'):
-            xml2array(xml)
-        if key == ord('F') and args.default_name!=None:
-            xmlclass2array(xml, args.default_name)
+def main(args):
+    main_window = MainWindow(args)
+    main_window.tk.mainloop()
 
-cv2.destroyAllWindows()
+
+def parse_arguments(argv):
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--aspect_ratio', type=str, default='9:16')
+    parser.add_argument('--info_file', type=str, default='info.json')
+
+    return parser.parse_args(argv)
+
+
+if __name__ == '__main__':
+    main(parse_arguments(sys.argv[1:]))

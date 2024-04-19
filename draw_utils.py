@@ -11,7 +11,6 @@ Z = (0, 0, 0)
 
 
 def draw_nav_string(img, img_list, idx):
-
     msg = "{}/{}".format(idx + 1, len(img_list))
     msg_sz, _ = cv2.getTextSize(msg, font, 1, 1)
 
@@ -20,26 +19,21 @@ def draw_nav_string(img, img_list, idx):
 
 
 def draw_file_path(img, file_path):
-
     cv2.putText(img, file_path, (5, 15), font, 0.7, W, 2)
     cv2.putText(img, file_path, (5, 15), font, 0.7, R, 1)
 
 
-def draw_annot(img, name, tl, br):
-
+def draw_annot(img, name, tl, br, draw_label=True):
     txt_sz, _ = cv2.getTextSize(name, font, 1, 1)
 
     cv2.rectangle(img, tl, br, R, 1)
-    cv2.rectangle(img, (tl[0], tl[1] - txt_sz[1] - 4),
-                  (tl[0] + txt_sz[0], tl[1]), R, -1)
-    cv2.putText(img, name, (tl[0], tl[1] - 4), font, 1, W, 1)
-
-def draw_annot_2(img, name, tl, br):
-    cv2.rectangle(img, tl, br, R, 1)
+    if draw_label:
+        cv2.rectangle(img, (tl[0], tl[1] - txt_sz[1] - 4),
+                      (tl[0] + txt_sz[0], tl[1]), R, -1)
+        cv2.putText(img, name, (tl[0], tl[1] - 4), font, 1, W, 1)
 
 
 def draw_polygon(img, polygon, name):
-
     for i in range(len(polygon) - 1):
         cv2.line(img, polygon[i], polygon[i + 1], R, 1)
     cv2.line(img, polygon[0], polygon[-1], R, 1)
@@ -63,7 +57,6 @@ def draw_polygon(img, polygon, name):
 
 
 def draw_crosshair(img, pt):
-
     cv2.line(img, (0, pt[1] - 1), (img.shape[1], pt[1] - 1), W, 1)
     cv2.line(img, (0, pt[1]), (img.shape[1], pt[1]), Z, 1)
     cv2.line(img, (0, pt[1] + 1), (img.shape[1], pt[1] + 1), W, 1)
