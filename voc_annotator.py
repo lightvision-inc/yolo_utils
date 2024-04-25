@@ -96,8 +96,7 @@ class MainWindow:
         self.file_list = []
         self.info['file_idx'] = 0
 
-        self.img_width = None
-        self.img_height = None
+        self.s = None
         self.img = None
         self.xml = None
         self.xml_path = None
@@ -109,8 +108,8 @@ class MainWindow:
         self.names = []
 
     def _minmax(self, pos):
-        x = min(max(0, pos[0]), self.img_width - 1)
-        y = min(max(0, pos[1]), self.img_height - 1)
+        x = min(max(0, pos[0]), self.frame_width - 1)
+        y = min(max(0, pos[1]), self.frame_height - 1)
         return (x, y)
 
     def _mouse_move_handler(self, e):
@@ -128,7 +127,10 @@ class MainWindow:
     def _mouse_lbutton_press_handler(self, e):
         if keyboard.is_pressed('ctrl'):
             for i in range(len(self.names)):
-                if self.tl[i][0] < e.x and e.x < self.br[i][0] and self.tl[i][1] < e.y and e.y < self.br[i][1]:
+                if self.tl[i][0] * self.s < e.x and \
+                        e.x < self.br[i][0] * self.s and \
+                    self.tl[i][1] * self.s < e.y and \
+                        e.y < self.br[i][1] * self.s:
                     del self.tl[i], self.br[i], self.names[i]
                     break
         else:
@@ -161,10 +163,10 @@ class MainWindow:
         else:
             self.names.append(self.info['default_name'])
 
-        min_x = min(self.ref_pos[0], e.x)
-        max_x = max(self.ref_pos[0], e.x)
-        min_y = min(self.ref_pos[1], e.y)
-        max_y = max(self.ref_pos[1], e.y)
+        min_x = min(self.ref_pos[0], e.x) / self.s
+        max_x = max(self.ref_pos[0], e.x) / self.s
+        min_y = min(self.ref_pos[1], e.y) / self.s
+        max_y = max(self.ref_pos[1], e.y) / self.s
 
         self.tl.append((min_x, min_y))
         self.br.append((max_x, max_y))
@@ -177,6 +179,10 @@ class MainWindow:
             title='Select a directory containing videos and corresponding images')
         if len(self.root) == 0:
             return
+
+        # clear current list
+        self.file_list = []
+        self.listbox.delete(0, 'end')
 
         self.label_folder.config(text=self.root)
         self.info_path = os.path.join(self.root, self.args.info_file)
@@ -197,6 +203,11 @@ class MainWindow:
                 continue
 
             if e.endswith('.jpg') or e.endswith('.jpeg') or e.endswith('.png'):
+                xml_path = os.path.join(
+                    self.annot_folder, Path(e).with_suffix('.xml'))
+                if self.args.review_mode and not os.path.exists(xml_path):
+                    continue
+
                 self.file_list.append(p)
                 self.listbox.insert(tk.END, e)
 
@@ -263,10 +274,10 @@ class MainWindow:
             names.append(e.find('name').text)
             bb = e.find('bndbox')
 
-            xmin = int(bb[0].text)
-            ymin = int(bb[1].text)
-            xmax = int(bb[2].text)
-            ymax = int(bb[3].text)
+            xmin = float(bb[0].text)
+            ymin = float(bb[1].text)
+            xmax = float(bb[2].text)
+            ymax = float(bb[3].text)
 
             tl.append((xmin, ymin))
             br.append((xmax, ymax))
@@ -322,15 +333,17 @@ class MainWindow:
             # convert xml to three arrays
             self.tl, self.br, self.names = self._xml2array(self.xml)
 
-        # store width and height of original image
-        self.img_width = self.img.shape[1]
-        self.img_height = self.img.shape[0]
+        # store scale factor
+        self.s = self.frame_height / self.img.shape[0]
 
         # resize image to display properly
         self.img = cv2.resize(self.img, (self.frame_width, self.frame_height))
 
         self._display_image()
         self._update_file_idx()
+
+    def _scale(self, pt, s):
+        return (round(pt[0] * s), round(pt[1] * s))
 
     def _display_image(self):
         if self.img is None:
@@ -341,8 +354,10 @@ class MainWindow:
             utils.draw_crosshair(disp, self.cur_pos)
 
         for i in range(len(self.names)):
+            tl_s = self._scale(self.tl[i], self.s)
+            br_s = self._scale(self.br[i], self.s)
             utils.draw_annot(
-                disp, self.names[i], self.tl[i], self.br[i], draw_label=self.info['draw_label'])
+                disp, self.names[i], tl_s, br_s, draw_label=self.info['draw_label'])
 
         if self.ref_pos is not None:
             cv2.rectangle(disp, self.ref_pos, self.cur_pos, utils.G, 1)
@@ -425,6 +440,7 @@ def parse_arguments(argv):
 
     parser.add_argument('--aspect_ratio', type=str, default='9:16')
     parser.add_argument('--info_file', type=str, default='info.json')
+    parser.add_argument('--review_mode', action='store_true')
 
     return parser.parse_args(argv)
 
