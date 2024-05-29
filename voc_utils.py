@@ -2,17 +2,8 @@ import os
 import cv2
 import glob
 import json
+import logging
 import xml.etree.ElementTree as ET
-
-
-def remove_annot_files(path):
-
-    annot_list = glob.glob(os.path.join(path, 'JPEGImages/*.txt'))
-    for annot in annot_list:
-        try:
-            os.remove(annot)
-        except:
-            print('unable to delete: ' + annot)
 
 
 def convert(size, box):
@@ -43,6 +34,12 @@ def convert_annotation(path, filename, classes):
     for obj in root.iter('object'):
         difficult = obj.find('difficult').text
         c = obj.find('name').text
+
+        # empty class name check
+        if c == '':
+            logging.error('empty class name: %s', filename)
+            return
+
         if classes is None:
             cid = int(c)
         else:
@@ -50,12 +47,16 @@ def convert_annotation(path, filename, classes):
                 continue
             cid = classes.index(c)
         xmlbox = obj.find('bndbox')
-        b = (float(xmlbox.find('xmin').text), float(xmlbox.find('xmax').text), float(
-            xmlbox.find('ymin').text), float(xmlbox.find('ymax').text))
+        b = (
+            max(0, float(xmlbox.find('xmin').text)),
+            min(w, float(xmlbox.find('xmax').text)),
+            max(0, float(xmlbox.find('ymin').text)),
+            min(h, float(xmlbox.find('ymax').text))
+        )
         bb = convert((w, h), b)
 
         out_file = open(
-            '{}/JPEGImages/{}.txt'.format(path, filename), 'a+')
+            '{}/labels/{}.txt'.format(path, filename), 'a+')
         out_file.write('{} {:f} {:f} {:f} {:f}\n'.format(
             cid, bb[0], bb[1], bb[2], bb[3]))
 
